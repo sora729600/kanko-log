@@ -17,6 +17,7 @@ class User(Base):
     bio = Column(Text, nullable=True)
     avatar_url = Column(String(255), nullable=True)
     cover_url = Column(String(255), nullable=True)
+    is_private = Column(Boolean, default=False)  # 鍵アカウント設定（Trueならフォロー承認制）
     created_at = Column(DateTime, default=datetime.utcnow)
 
     spots = relationship("Spot", back_populates="author", cascade="all, delete-orphan")
@@ -61,6 +62,7 @@ class Follow(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     follower_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     followed_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(20), default="accepted")  # 'accepted' または 'pending' (承認待ち)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (UniqueConstraint('follower_id', 'followed_id', name='unique_follow_relation'),)
@@ -82,7 +84,7 @@ class Notification(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    type = Column(String(50), nullable=False)  # 'follow', 'new_post'
+    type = Column(String(50), nullable=False)  # 'follow', 'follow_request', 'follow_accepted', 'new_post'
     message = Column(String(255), nullable=False)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)

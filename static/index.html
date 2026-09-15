@@ -97,16 +97,15 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>友達の最新ログが並ぶストーリーバー</span>
+          <span>鍵垢（承認制）対応のフレンド機能</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>フォロー・投稿のリアルタイム通知</span>
+          <span>最新の旅路が並ぶストーリートレイ</span>
         </div>
       </div>
     </div>
 
-    <!-- 認証フォーム -->
     <div class="bg-white border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
       <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-4">
         <h2 id="gateTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">SIGN IN TO YOUR LOG</h2>
@@ -165,14 +164,12 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- ユーザー検索 -->
         <button onclick="openUserSearchModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition" title="ユーザーを探す">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </button>
 
-        <!-- 通知ベル -->
         <button onclick="openNotificationsModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition relative" title="通知">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -180,7 +177,6 @@
           <span id="notifBadge" class="hidden absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
         </button>
 
-        <!-- DM -->
         <button onclick="openConversationsModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition" title="メッセージ">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -190,12 +186,12 @@
         <div id="authStatusContainer"></div>
 
         <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm ml-1">
-          <span>+ ADD</span>
+          <span>+</span>
         </button>
       </div>
     </header>
 
-    <!-- インスタ風ストーリーバー -->
+    <!-- インスタ風ストーリートレイ -->
     <div id="storiesContainer" class="bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto no-scrollbar flex items-center gap-3.5">
       <div id="myStoryAvatar" class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="openProfile(currentUser.username)">
         <div class="w-13 h-13 rounded-full border-2 border-slate-900 p-0.5 relative">
@@ -229,9 +225,7 @@
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Notifications</h2>
           <button onclick="closeNotificationsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
         </div>
-        <div id="notificationsList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
-          <p class="text-center text-slate-400 py-6">新しい通知はありません</p>
-        </div>
+        <div id="notificationsList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
       </div>
     </div>
 
@@ -312,15 +306,39 @@
       </div>
     </div>
 
-    <!-- 3. プロフィールモーダル -->
+    <!-- 3. プロフィールモーダル（3点メニュー付き） -->
     <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden">
         <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-900">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 bg-slate-900"></span>
             <span class="text-[10px] font-mono tracking-[0.2em] uppercase font-bold text-slate-900">Journalist Profile</span>
+            <span id="profilePrivateBadge" class="hidden text-[9px] bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 font-mono">🔒 PRIVATE</span>
           </div>
-          <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
+
+          <div class="flex items-center gap-2">
+            <!-- 3点メニュー（自分のプロフィールの場合のみ表示） -->
+            <div id="myMenuContainer" class="relative hidden">
+              <button onclick="toggleProfileMenu()" class="text-slate-600 hover:text-slate-950 px-1.5 py-0.5 font-bold text-base transition">
+                ⋮
+              </button>
+              <div id="profileDropdown" class="hidden absolute right-0 mt-1 w-44 bg-white border border-slate-900 rounded-2xl shadow-xl py-1.5 text-xs z-50 font-medium">
+                <button onclick="openIncomingRequestsModal()" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center justify-between">
+                  <span>承認待ち一覧</span>
+                  <span id="incomingBadge" class="hidden w-2 h-2 bg-rose-500 rounded-full"></span>
+                </button>
+                <button onclick="openOutgoingRequestsModal()" class="w-full text-left px-4 py-2 hover:bg-slate-50">
+                  <span>申請中アカウント</span>
+                </button>
+                <div class="border-t border-slate-100 my-1"></div>
+                <button onclick="openSettingsModal()" class="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-800">
+                  <span>⚙️ 設定・友だち</span>
+                </button>
+              </div>
+            </div>
+
+            <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
+          </div>
         </div>
 
         <div class="space-y-4">
@@ -354,6 +372,57 @@
               <span id="profileFollowersCount" class="text-sm font-black text-slate-900">0</span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 設定 & 友だち設定モーダル -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Settings & Friends</h2>
+          <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+
+        <div class="space-y-4 text-xs">
+          <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-bold text-slate-900">非公開アカウント（鍵垢）</p>
+                <p class="text-[10px] text-slate-500 mt-0.5">フォローを承認制にし、許可した友達のみに公開します</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer ml-3">
+                <input type="checkbox" id="privateAccountToggle" class="sr-only peer" onchange="togglePrivateAccount(this.checked)">
+                <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 承認待ち一覧モーダル -->
+    <div id="incomingRequestsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">承認待ちの申請</h2>
+          <button onclick="closeIncomingRequestsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="incomingRequestsList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
+          <p class="text-center text-slate-400 py-6">承認待ちのフォロー申請はありません</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 申請中アカウント一覧モーダル -->
+    <div id="outgoingRequestsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">申請中のアカウント</h2>
+          <button onclick="closeOutgoingRequestsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="outgoingRequestsList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
+          <p class="text-center text-slate-400 py-6">申請中のアカウントはありません</p>
         </div>
       </div>
     </div>
@@ -497,7 +566,7 @@
           myImg.innerText = '';
         } else {
           myImg.style.backgroundImage = 'none';
-          myImg.innerText = (user.display_name || user.username).charAt(0).toUpperCase();
+          myImg.innerText = user.display_name.charAt(0).toUpperCase();
         }
       } else {
         c.innerHTML = '';
@@ -946,7 +1015,7 @@
       }
     };
 
-    // --- プロフィール表示（空白・大文字対応版） ---
+    // --- プロフィール表示 & 3点メニュー ---
     window.openProfile = async function(rawUsername) {
       const username = decodeURIComponent(rawUsername);
       const token = getToken();
@@ -966,6 +1035,13 @@
         document.getElementById('profileFollowingCount').innerText = user.following_count;
         document.getElementById('profileFollowersCount').innerText = user.followers_count;
 
+        const badgePrivate = document.getElementById('profilePrivateBadge');
+        if (user.is_private) {
+          badgePrivate.classList.remove('hidden');
+        } else {
+          badgePrivate.classList.add('hidden');
+        }
+
         const avatarEl = document.getElementById('profileAvatar');
         if (user.avatar_url) {
           avatarEl.style.backgroundImage = `url('${user.avatar_url}')`;
@@ -978,13 +1054,29 @@
         const coverEl = document.getElementById('profileCover');
         coverEl.style.backgroundImage = user.cover_url ? `url('${user.cover_url}')` : 'none';
 
+        const myMenuContainer = document.getElementById('myMenuContainer');
         const act = document.getElementById('profileActionContainer');
+
         if (currentUser && currentUser.username.toLowerCase() === user.username.toLowerCase()) {
+          // 自分のプロフィールの場合
+          myMenuContainer.classList.remove('hidden');
           act.innerHTML = `<button onclick="openEditProfile()" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">EDIT PROFILE</button>`;
         } else {
+          // 友達のプロフィールの場合
+          myMenuContainer.classList.add('hidden');
+          let followBtnText = "フォロー";
+          let followBtnClass = "navy-btn";
+
+          if (user.follow_status === 'following') {
+            followBtnText = "フォロー中";
+          } else if (user.follow_status === 'pending') {
+            followBtnText = "申請中";
+            followBtnClass = "navy-btn-outline";
+          }
+
           act.innerHTML = `
-            <button onclick="toggleFollowUser('${encodeURIComponent(user.username)}')" class="navy-btn text-[10px] font-bold px-3 py-1 rounded-full">
-              ${user.is_following ? 'フォロー中' : 'フォロー'}
+            <button id="followBtn" onclick="toggleFollowUser('${encodeURIComponent(user.username)}')" class="${followBtnClass} text-[10px] font-bold px-3 py-1 rounded-full">
+              ${followBtnText}
             </button>
             <button onclick="openDmChat('${encodeURIComponent(user.username)}')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
               <span>✉️</span><span>DM</span>
@@ -992,6 +1084,7 @@
           `;
         }
 
+        document.getElementById('profileDropdown').classList.add('hidden');
         document.getElementById('profileModal').classList.remove('hidden');
       } catch (err) {
         alert('プロフィール取得時にエラーが発生しました');
@@ -1000,12 +1093,20 @@
 
     window.closeProfileModal = function() {
       document.getElementById('profileModal').classList.add('hidden');
+      document.getElementById('profileDropdown').classList.add('hidden');
+    };
+
+    window.toggleProfileMenu = function() {
+      document.getElementById('profileDropdown').classList.toggle('hidden');
     };
 
     window.toggleFollowUser = async function(rawUsername) {
       const username = decodeURIComponent(rawUsername);
       const token = getToken();
       if (!token) return;
+
+      const btn = document.getElementById('followBtn');
+      if (btn) btn.innerText = '...';
 
       const res = await fetch(`/users/${encodeURIComponent(username)}/follow`, {
         method: 'POST',
@@ -1015,6 +1116,128 @@
         openProfile(username);
         loadStories();
       }
+    };
+
+    // --- 3点メニュー：設定モーダル ---
+    window.openSettingsModal = function() {
+      document.getElementById('profileDropdown').classList.add('hidden');
+      document.getElementById('privateAccountToggle').checked = !!currentUser.is_private;
+      document.getElementById('settingsModal').classList.remove('hidden');
+    };
+
+    window.closeSettingsModal = function() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    };
+
+    window.togglePrivateAccount = async function(isPrivate) {
+      const token = getToken();
+      const res = await fetch('/users/privacy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_private: isPrivate })
+      });
+      if (res.ok) {
+        currentUser.is_private = isPrivate;
+        checkAuth();
+      }
+    };
+
+    // --- 3点メニュー：承認待ち一覧（鍵垢への申請） ---
+    window.openIncomingRequestsModal = async function() {
+      document.getElementById('profileDropdown').classList.add('hidden');
+      const token = getToken();
+      const res = await fetch('/friends/incoming-requests', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const listEl = document.getElementById('incomingRequestsList');
+
+      if (res.ok) {
+        const users = await res.json();
+        if (users.length === 0) {
+          listEl.innerHTML = '<p class="text-center text-slate-400 py-6">承認待ちのフォロー申請はありません</p>';
+        } else {
+          listEl.innerHTML = users.map(u => `
+            <div class="p-3 flex items-center justify-between">
+              <div class="flex items-center gap-2 cursor-pointer" onclick="openProfile('${encodeURIComponent(u.username)}')">
+                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                  ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
+                </div>
+                <div>
+                  <p class="font-bold text-slate-900">${u.display_name || u.username}</p>
+                  <p class="text-[10px] text-slate-400 font-mono">@${u.username}</p>
+                </div>
+              </div>
+              <div class="flex gap-1.5">
+                <button onclick="handleDecision('${encodeURIComponent(u.username)}', 'accept')" class="navy-btn text-[10px] font-bold px-2.5 py-1 rounded-lg">承認</button>
+                <button onclick="handleDecision('${encodeURIComponent(u.username)}', 'decline')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-lg">拒否</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+      document.getElementById('incomingRequestsModal').classList.remove('hidden');
+    };
+
+    window.closeIncomingRequestsModal = function() {
+      document.getElementById('incomingRequestsModal').classList.add('hidden');
+    };
+
+    window.handleDecision = async function(rawUsername, action) {
+      const username = decodeURIComponent(rawUsername);
+      const token = getToken();
+      const res = await fetch('/friends/decision', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ target_username: username, action: action })
+      });
+      if (res.ok) {
+        openIncomingRequestsModal();
+        loadStories();
+        if (currentUser) openProfile(currentUser.username);
+      }
+    };
+
+    // --- 3点メニュー：申請中アカウント一覧 ---
+    window.openOutgoingRequestsModal = async function() {
+      document.getElementById('profileDropdown').classList.add('hidden');
+      const token = getToken();
+      const res = await fetch('/friends/outgoing-requests', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const listEl = document.getElementById('outgoingRequestsList');
+
+      if (res.ok) {
+        const users = await res.json();
+        if (users.length === 0) {
+          listEl.innerHTML = '<p class="text-center text-slate-400 py-6">申請中のアカウントはありません</p>';
+        } else {
+          listEl.innerHTML = users.map(u => `
+            <div class="p-3 flex items-center justify-between">
+              <div class="flex items-center gap-2 cursor-pointer" onclick="openProfile('${encodeURIComponent(u.username)}')">
+                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                  ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
+                </div>
+                <div>
+                  <p class="font-bold text-slate-900">${u.display_name || u.username}</p>
+                  <p class="text-[10px] text-slate-400 font-mono">@${u.username}</p>
+                </div>
+              </div>
+              <button onclick="toggleFollowUser('${encodeURIComponent(u.username)}'); openOutgoingRequestsModal();" class="text-[10px] font-bold text-slate-400 hover:text-rose-500">申請取消</button>
+            </div>
+          `).join('');
+        }
+      }
+      document.getElementById('outgoingRequestsModal').classList.remove('hidden');
+    };
+
+    window.closeOutgoingRequestsModal = function() {
+      document.getElementById('outgoingRequestsModal').classList.add('hidden');
     };
 
     window.openEditProfile = function() {

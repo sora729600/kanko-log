@@ -30,6 +30,7 @@ def init_and_fix_db():
             conn.execute(text("""
                 DO $$
                 BEGIN
+                    -- follows テーブルの修復
                     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'follows') THEN
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'followed_id') THEN
                             ALTER TABLE follows ADD COLUMN followed_id UUID;
@@ -37,7 +38,19 @@ def init_and_fix_db():
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'follower_id') THEN
                             ALTER TABLE follows ADD COLUMN follower_id UUID;
                         END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'status') THEN
+                            ALTER TABLE follows ADD COLUMN status VARCHAR(20) DEFAULT 'accepted';
+                        END IF;
                     END IF;
+
+                    -- users テーブルに is_private 追加
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_private') THEN
+                            ALTER TABLE users ADD COLUMN is_private BOOLEAN DEFAULT FALSE;
+                        END IF;
+                    END IF;
+
+                    -- notifications テーブルの確認
                     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'notifications') THEN
                         CREATE TABLE notifications (
                             id UUID PRIMARY KEY,
@@ -51,7 +64,7 @@ def init_and_fix_db():
                     END IF;
                 END $$;
             """))
-            print("[DB Migration] Verified and patched database schema.")
+            print("[DB Migration] Verified and patched database schema with privacy and request status.")
     except Exception as e:
         print(f"[DB Migration Note]: {e}")
 
@@ -87,7 +100,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 # -------------------------------------------------------------
 # 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.1.3")
+app = FastAPI(title="Travel Log", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -118,6 +131,13 @@ class DmCreate(BaseModel):
     recipient_username: str
     content: str
 
+class PrivacyUpdate(BaseModel):
+    is_private: bool
+
+class FollowDecision(BaseModel):
+    target_username: str
+    action: str  # 'accept' or 'decline'
+
 def get_current_user_maybe(request: Request, db: Session = Depends(get_db)) -> Optional[models.User]:
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -127,7 +147,9 @@ def get_current_user_maybe(request: Request, db: Session = Depends(get_db)) -> O
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username:
-            return db.query(models.User).filter(models.User.username == username).first()
+            return db.query(models.User).filter(
+                or_(models.User.username == username, models.User.username.ilike(username))
+            ).first()
     except Exception:
         return None
     return None
@@ -156,6 +178,7 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         email=user_in.email.strip() if user_in.email else None,
         hashed_password=get_password_hash(user_in.password),
         bio="旅の記録をはじめました。",
+        is_private=False
     )
     db.add(new_user)
     db.commit()
@@ -171,7 +194,8 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
             "display_name": new_user.display_name,
             "bio": new_user.bio,
             "avatar_url": new_user.avatar_url,
-            "cover_url": new_user.cover_url
+            "cover_url": new_user.cover_url,
+            "is_private": new_user.is_private
         }
     }
 
@@ -194,7 +218,8 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
             "display_name": user.display_name,
             "bio": user.bio,
             "avatar_url": user.avatar_url,
-            "cover_url": user.cover_url
+            "cover_url": user.cover_url,
+            "is_private": user.is_private
         }
     }
 
@@ -207,11 +232,12 @@ def get_me(current_user: models.User = Depends(get_current_user)):
         "email": current_user.email,
         "bio": current_user.bio,
         "avatar_url": current_user.avatar_url,
-        "cover_url": current_user.cover_url
+        "cover_url": current_user.cover_url,
+        "is_private": current_user.is_private or False
     }
 
 # -------------------------------------------------------------
-# 6. ストーリーバー（フォロー中ユーザー）
+# 6. ストーリーバー（承認済みフォロー中ユーザー）
 # -------------------------------------------------------------
 @app.get("/users/following/stories")
 def get_following_stories(db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
@@ -219,7 +245,10 @@ def get_following_stories(db: Session = Depends(get_db), current_user: Optional[
         return []
 
     try:
-        follows = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id).all()
+        follows = db.query(models.Follow).filter(
+            models.Follow.follower_id == current_user.id,
+            models.Follow.status == "accepted"
+        ).all()
         followed_ids = [f.followed_id for f in follows if f.followed_id is not None]
         if not followed_ids:
             return []
@@ -241,7 +270,7 @@ def get_following_stories(db: Session = Depends(get_db), current_user: Optional[
         return []
 
 # -------------------------------------------------------------
-# 7. スポット（旅ログ）
+# 7. スポット（旅ログ）投稿 & フィード
 # -------------------------------------------------------------
 @app.get("/spots")
 def get_spots(
@@ -263,7 +292,10 @@ def get_spots(
             else:
                 return []
         elif feed_type == "following" and current_user:
-            follows = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id).all()
+            follows = db.query(models.Follow).filter(
+                models.Follow.follower_id == current_user.id,
+                models.Follow.status == "accepted"
+            ).all()
             followed_ids = [f.followed_id for f in follows if f.followed_id is not None]
             if not followed_ids:
                 return []
@@ -360,7 +392,10 @@ def create_spot(
 
         if current_user:
             try:
-                followers = db.query(models.Follow).filter(models.Follow.followed_id == current_user.id).all()
+                followers = db.query(models.Follow).filter(
+                    models.Follow.followed_id == current_user.id,
+                    models.Follow.status == "accepted"
+                ).all()
                 for f in followers:
                     notif = models.Notification(
                         id=uuid.uuid4(),
@@ -417,7 +452,7 @@ def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: model
     return {"status": "deleted"}
 
 # -------------------------------------------------------------
-# 8. プロフィール & フォロー（空白・大文字小文字対応版）
+# 8. プロフィール & 鍵垢 & フォロー・申請
 # -------------------------------------------------------------
 @app.get("/users/search")
 def search_users(q: str = Query(""), db: Session = Depends(get_db)):
@@ -442,26 +477,32 @@ def get_profile(username: str, db: Session = Depends(get_db), current_user: Opti
     try:
         clean_user = username.strip()
         target = db.query(models.User).filter(
-            or_(
-                models.User.username == clean_user,
-                models.User.username.ilike(clean_user)
-            )
+            or_(models.User.username == clean_user, models.User.username.ilike(clean_user))
         ).first()
         if not target:
             raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
         
         following_count = 0
         followers_count = 0
-        is_following = False
+        follow_status = "none"  # 'none' | 'following' | 'pending'
 
         try:
-            following_count = db.query(models.Follow).filter(models.Follow.follower_id == target.id).count()
-            followers_count = db.query(models.Follow).filter(models.Follow.followed_id == target.id).count()
+            following_count = db.query(models.Follow).filter(
+                models.Follow.follower_id == target.id,
+                models.Follow.status == "accepted"
+            ).count()
+            followers_count = db.query(models.Follow).filter(
+                models.Follow.followed_id == target.id,
+                models.Follow.status == "accepted"
+            ).count()
+
             if current_user:
-                is_following = db.query(models.Follow).filter(
+                rel = db.query(models.Follow).filter(
                     models.Follow.follower_id == current_user.id,
                     models.Follow.followed_id == target.id
-                ).first() is not None
+                ).first()
+                if rel:
+                    follow_status = "following" if rel.status == "accepted" else "pending"
         except Exception as fe:
             print(f"[Profile Follow Count Note]: {fe}")
 
@@ -472,9 +513,10 @@ def get_profile(username: str, db: Session = Depends(get_db), current_user: Opti
             "bio": target.bio or "旅の記録をはじめました。",
             "avatar_url": target.avatar_url,
             "cover_url": target.cover_url,
+            "is_private": target.is_private or False,
             "following_count": following_count,
             "followers_count": followers_count,
-            "is_following": is_following
+            "follow_status": follow_status
         }
     except HTTPException:
         raise
@@ -486,10 +528,7 @@ def get_profile(username: str, db: Session = Depends(get_db), current_user: Opti
 def toggle_follow(username: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     clean_user = username.strip()
     target = db.query(models.User).filter(
-        or_(
-            models.User.username == clean_user,
-            models.User.username.ilike(clean_user)
-        )
+        or_(models.User.username == clean_user, models.User.username.ilike(clean_user))
     ).first()
     if not target:
         raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
@@ -502,24 +541,112 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: mo
     ).first()
     
     if rel:
+        # すでにフォロー中または申請中なら解除
         db.delete(rel)
         db.commit()
-        return {"following": False}
+        return {"follow_status": "none"}
     else:
-        db.add(models.Follow(follower_id=current_user.id, followed_id=target.id))
+        # 鍵垢なら申請中(pending)、公開アカウントなら即時承認(accepted)
+        if target.is_private:
+            new_rel = models.Follow(follower_id=current_user.id, followed_id=target.id, status="pending")
+            notif_msg = f"@{current_user.username} さんからフォロー申請が届きました！"
+            notif_type = "follow_request"
+            result_status = "pending"
+        else:
+            new_rel = models.Follow(follower_id=current_user.id, followed_id=target.id, status="accepted")
+            notif_msg = f"@{current_user.username} さんにフォローされました！"
+            notif_type = "follow"
+            result_status = "following"
+
+        db.add(new_rel)
         try:
             notif = models.Notification(
                 id=uuid.uuid4(),
                 recipient_id=target.id,
                 sender_id=current_user.id,
-                type="follow",
-                message=f"@{current_user.username} さんにフォローされました！"
+                type=notif_type,
+                message=notif_msg
             )
             db.add(notif)
         except Exception:
             pass
         db.commit()
-        return {"following": True}
+        return {"follow_status": result_status}
+
+# 申請中のアカウント一覧（自分が相手に申請して保留中のもの）
+@app.get("/friends/outgoing-requests")
+def get_outgoing_requests(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    reqs = db.query(models.Follow).filter(
+        models.Follow.follower_id == current_user.id,
+        models.Follow.status == "pending"
+    ).all()
+    target_ids = [r.followed_id for r in reqs]
+    users = db.query(models.User).filter(models.User.id.in_(target_ids)).all() if target_ids else []
+    return [{
+        "id": str(u.id),
+        "username": u.username,
+        "display_name": u.display_name,
+        "avatar_url": u.avatar_url
+    } for u in users]
+
+# 承認待ち一覧（鍵垢の自分宛に届いている申請）
+@app.get("/friends/incoming-requests")
+def get_incoming_requests(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    reqs = db.query(models.Follow).filter(
+        models.Follow.followed_id == current_user.id,
+        models.Follow.status == "pending"
+    ).all()
+    sender_ids = [r.follower_id for r in reqs]
+    users = db.query(models.User).filter(models.User.id.in_(sender_ids)).all() if sender_ids else []
+    return [{
+        "id": str(u.id),
+        "username": u.username,
+        "display_name": u.display_name,
+        "avatar_url": u.avatar_url
+    } for u in users]
+
+# 申請の承認 or 拒否
+@app.post("/friends/decision")
+def handle_follow_decision(payload: FollowDecision, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    sender = db.query(models.User).filter(
+        or_(models.User.username == payload.target_username, models.User.username.ilike(payload.target_username))
+    ).first()
+    if not sender:
+        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+
+    rel = db.query(models.Follow).filter(
+        models.Follow.follower_id == sender.id,
+        models.Follow.followed_id == current_user.id,
+        models.Follow.status == "pending"
+    ).first()
+
+    if not rel:
+        raise HTTPException(status_code=404, detail="対象のフォロー申請がありません")
+
+    if payload.action == "accept":
+        rel.status = "accepted"
+        # 承認通知
+        notif = models.Notification(
+            id=uuid.uuid4(),
+            recipient_id=sender.id,
+            sender_id=current_user.id,
+            type="follow_accepted",
+            message=f"@{current_user.username} さんへのフォロー申請が承認されました！"
+        )
+        db.add(notif)
+        db.commit()
+        return {"status": "accepted"}
+    else:
+        db.delete(rel)
+        db.commit()
+        return {"status": "declined"}
+
+# 鍵アカウント設定の更新
+@app.post("/users/privacy")
+def update_privacy(payload: PrivacyUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    current_user.is_private = payload.is_private
+    db.commit()
+    return {"status": "ok", "is_private": current_user.is_private}
 
 @app.post("/users/profile")
 def update_profile(
@@ -559,7 +686,8 @@ def update_profile(
         "display_name": current_user.display_name,
         "bio": current_user.bio,
         "avatar_url": current_user.avatar_url,
-        "cover_url": current_user.cover_url
+        "cover_url": current_user.cover_url,
+        "is_private": current_user.is_private
     }
 
 # -------------------------------------------------------------
