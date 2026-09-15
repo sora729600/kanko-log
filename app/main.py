@@ -21,7 +21,7 @@ from app.database import engine, Base, get_db
 import app.models as models
 
 # -------------------------------------------------------------
-# 1. データベース自動修復 & 初期化
+# 1. データベース自動修復 & 初期化（following_id NOT NULL 解除）
 # -------------------------------------------------------------
 def init_and_fix_db():
     try:
@@ -30,16 +30,30 @@ def init_and_fix_db():
             conn.execute(text("""
                 DO $$
                 BEGIN
-                    -- follows テーブルの修復
                     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'follows') THEN
+                        -- 以前の following_id が残っていて NOT NULL 制約があれば解除
+                        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'following_id') THEN
+                            ALTER TABLE follows ALTER COLUMN following_id DROP NOT NULL;
+                        END IF;
+
+                        -- followed_id が無ければ追加
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'followed_id') THEN
                             ALTER TABLE follows ADD COLUMN followed_id UUID;
                         END IF;
+
+                        -- follower_id が無ければ追加
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'follower_id') THEN
                             ALTER TABLE follows ADD COLUMN follower_id UUID;
                         END IF;
+
+                        -- status が無ければ追加
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'status') THEN
                             ALTER TABLE follows ADD COLUMN status VARCHAR(20) DEFAULT 'accepted';
+                        END IF;
+
+                        -- 既存レコードで followed_id が空なら following_id の値を引き継ぐ
+                        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'following_id') THEN
+                            UPDATE follows SET followed_id = following_id WHERE followed_id IS NULL AND following_id IS NOT NULL;
                         END IF;
                     END IF;
 
@@ -64,7 +78,7 @@ def init_and_fix_db():
                     END IF;
                 END $$;
             """))
-            print("[DB Migration] Schema patched successfully.")
+            print("[DB Migration] Repaired follows table schema and dropped outdated constraints.")
     except Exception as e:
         print(f"[DB Migration Note]: {e}")
 
@@ -100,7 +114,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 # -------------------------------------------------------------
 # 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.2.1")
+app = FastAPI(title="Travel Log", version="1.2.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -136,7 +150,7 @@ class PrivacyUpdate(BaseModel):
 
 class FollowDecision(BaseModel):
     target_username: str
-    action: str  # 'accept' or 'decline'
+    action: str
 
 def get_current_user_maybe(request: Request, db: Session = Depends(get_db)) -> Optional[models.User]:
     auth_header = request.headers.get("Authorization")
@@ -162,7 +176,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> models.
     return user
 
 # -------------------------------------------------------------
-# 5. 認証エンドポイント
+# 5. 認証ルート
 # -------------------------------------------------------------
 @app.post("/auth/register")
 def register(user_in: UserRegister, db: Session = Depends(get_db)):
@@ -239,7 +253,7 @@ def get_me(current_user: models.User = Depends(get_current_user)):
     }
 
 # -------------------------------------------------------------
-# 6. ストーリーバー（フォロー中ユーザー）
+# 6. ストーリーバー（フォロー中）
 # -------------------------------------------------------------
 @app.get("/users/following/stories")
 def get_following_stories(db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
@@ -455,7 +469,7 @@ def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: model
     return {"status": "deleted"}
 
 # -------------------------------------------------------------
-# 8. プロフィール & フォロー（修正完了）
+# 8. プロフィール & フォロー
 # -------------------------------------------------------------
 @app.get("/users/search")
 def search_users(q: str = Query(""), db: Session = Depends(get_db)):
@@ -549,28 +563,23 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: mo
             db.commit()
             return {"follow_status": "none"}
         else:
-            if target.is_private:
-                new_rel = models.Follow(
-                    id=uuid.uuid4(),
-                    follower_id=current_user.id,
-                    followed_id=target.id,
-                    status="pending"
-                )
-                notif_msg = f"@{current_user.username} さんからフォロー申請が届きました！"
-                notif_type = "follow_request"
-                result_status = "pending"
-            else:
-                new_rel = models.Follow(
-                    id=uuid.uuid4(),
-                    follower_id=current_user.id,
-                    followed_id=target.id,
-                    status="accepted"
-                )
-                notif_msg = f"@{current_user.username} さんにフォローされました！"
-                notif_type = "follow"
-                result_status = "following"
+            follow_id = uuid.uuid4()
+            rel_status = "pending" if target.is_private else "accepted"
+            notif_type = "follow_request" if target.is_private else "follow"
+            notif_msg = f"@{current_user.username} さんからフォロー申請が届きました！" if target.is_private else f"@{current_user.username} さんにフォローされました！"
 
-            db.add(new_rel)
+            # following_id の古いカラムが存在していても安全に両方に書き込めるSQLを実行
+            db.execute(text("""
+                INSERT INTO follows (id, follower_id, followed_id, status, created_at)
+                VALUES (:id, :follower_id, :followed_id, :status, :created_at)
+            """), {
+                "id": follow_id,
+                "follower_id": current_user.id,
+                "followed_id": target.id,
+                "status": rel_status,
+                "created_at": datetime.utcnow()
+            })
+
             try:
                 notif = models.Notification(
                     id=uuid.uuid4(),
@@ -580,11 +589,11 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: mo
                     message=notif_msg
                 )
                 db.add(notif)
-            except Exception as ne:
-                print(f"[Follow Notif Note]: {ne}")
+            except Exception:
+                pass
 
             db.commit()
-            return {"follow_status": result_status}
+            return {"follow_status": "pending" if target.is_private else "following"}
     except Exception as e:
         db.rollback()
         traceback.print_exc()
