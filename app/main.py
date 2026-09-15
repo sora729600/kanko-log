@@ -27,7 +27,6 @@ def init_and_fix_db():
     try:
         with engine.begin() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
-            # follows テーブルが存在する場合、安全にカラムを追加・修復
             conn.execute(text("""
                 DO $$
                 BEGIN
@@ -39,7 +38,6 @@ def init_and_fix_db():
                             ALTER TABLE follows ADD COLUMN follower_id UUID;
                         END IF;
                     END IF;
-                    -- notifications テーブルの存在確認
                     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'notifications') THEN
                         CREATE TABLE notifications (
                             id UUID PRIMARY KEY,
@@ -89,7 +87,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 # -------------------------------------------------------------
 # 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.1.2")
+app = FastAPI(title="Travel Log", version="1.1.3")
 
 app.add_middleware(
     CORSMiddleware,
@@ -104,7 +102,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # -------------------------------------------------------------
-# 4. 認証ヘルパー（安全なヘッダー解析）
+# 4. 認証ヘルパー
 # -------------------------------------------------------------
 class UserRegister(BaseModel):
     username: str
@@ -145,8 +143,10 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> models.
 # -------------------------------------------------------------
 @app.post("/auth/register")
 def register(user_in: UserRegister, db: Session = Depends(get_db)):
-    clean_username = user_in.username.strip().lower()
-    existing = db.query(models.User).filter(models.User.username == clean_username).first()
+    clean_username = user_in.username.strip()
+    existing = db.query(models.User).filter(
+        or_(models.User.username == clean_username, models.User.username.ilike(clean_username))
+    ).first()
     if existing:
         raise HTTPException(status_code=400, detail="そのユーザーIDは既に使用されています")
     
@@ -177,8 +177,10 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
 
 @app.post("/auth/login")
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
-    clean_username = user_in.username.strip().lower()
-    user = db.query(models.User).filter(models.User.username == clean_username).first()
+    clean_username = user_in.username.strip()
+    user = db.query(models.User).filter(
+        or_(models.User.username == clean_username, models.User.username.ilike(clean_username))
+    ).first()
     if not user or not verify_password(user_in.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="ユーザー名またはパスワードが間違っています")
     
@@ -252,7 +254,10 @@ def get_spots(
         query = db.query(models.Spot)
 
         if target_username:
-            target_user = db.query(models.User).filter(models.User.username == target_username.strip().lower()).first()
+            clean_name = target_username.strip()
+            target_user = db.query(models.User).filter(
+                or_(models.User.username == clean_name, models.User.username.ilike(clean_name))
+            ).first()
             if target_user:
                 query = query.filter(models.Spot.user_id == target_user.id)
             else:
@@ -412,7 +417,7 @@ def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: model
     return {"status": "deleted"}
 
 # -------------------------------------------------------------
-# 8. プロフィール & フォロー（完全堅牢化）
+# 8. プロフィール & フォロー（空白・大文字小文字対応版）
 # -------------------------------------------------------------
 @app.get("/users/search")
 def search_users(q: str = Query(""), db: Session = Depends(get_db)):
@@ -435,8 +440,13 @@ def search_users(q: str = Query(""), db: Session = Depends(get_db)):
 @app.get("/users/{username}")
 def get_profile(username: str, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
     try:
-        clean_user = username.strip().lower()
-        target = db.query(models.User).filter(models.User.username == clean_user).first()
+        clean_user = username.strip()
+        target = db.query(models.User).filter(
+            or_(
+                models.User.username == clean_user,
+                models.User.username.ilike(clean_user)
+            )
+        ).first()
         if not target:
             raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
         
@@ -474,7 +484,13 @@ def get_profile(username: str, db: Session = Depends(get_db), current_user: Opti
 
 @app.post("/users/{username}/follow")
 def toggle_follow(username: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    target = db.query(models.User).filter(models.User.username == username.strip().lower()).first()
+    clean_user = username.strip()
+    target = db.query(models.User).filter(
+        or_(
+            models.User.username == clean_user,
+            models.User.username.ilike(clean_user)
+        )
+    ).first()
     if not target:
         raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
     if target.id == current_user.id:
@@ -610,7 +626,10 @@ def get_conversations(db: Session = Depends(get_db), current_user: models.User =
 
 @app.get("/messages/{partner_username}")
 def get_messages(partner_username: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    partner = db.query(models.User).filter(models.User.username == partner_username.strip().lower()).first()
+    clean_name = partner_username.strip()
+    partner = db.query(models.User).filter(
+        or_(models.User.username == clean_name, models.User.username.ilike(clean_name))
+    ).first()
     if not partner:
         raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
 
@@ -630,7 +649,10 @@ def get_messages(partner_username: str, db: Session = Depends(get_db), current_u
 
 @app.post("/messages")
 def send_message(payload: DmCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    recipient = db.query(models.User).filter(models.User.username == payload.recipient_username.strip().lower()).first()
+    clean_name = payload.recipient_username.strip()
+    recipient = db.query(models.User).filter(
+        or_(models.User.username == clean_name, models.User.username.ilike(clean_name))
+    ).first()
     if not recipient:
         raise HTTPException(status_code=404, detail="送信先ユーザーが見つかりません")
 

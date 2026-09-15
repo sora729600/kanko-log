@@ -60,7 +60,6 @@
       border: 1px dashed #0f172a;
       letter-spacing: 0.15em;
     }
-    /* 横スクロールバー非表示 */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -191,12 +190,12 @@
         <div id="authStatusContainer"></div>
 
         <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm ml-1">
-          <span>+</span>
+          <span>+ ADD</span>
         </button>
       </div>
     </header>
 
-    <!-- ★ インスタ風ストーリー（フォロー中アカウント横並びバー） -->
+    <!-- インスタ風ストーリーバー -->
     <div id="storiesContainer" class="bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto no-scrollbar flex items-center gap-3.5">
       <div id="myStoryAvatar" class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="openProfile(currentUser.username)">
         <div class="w-13 h-13 rounded-full border-2 border-slate-900 p-0.5 relative">
@@ -207,9 +206,7 @@
         <span class="text-[10px] font-bold text-slate-800 truncate w-14 text-center">My Log</span>
       </div>
 
-      <div id="followingStoriesList" class="flex items-center gap-3.5">
-        <!-- JSで動的に追加 -->
-      </div>
+      <div id="followingStoriesList" class="flex items-center gap-3.5"></div>
     </div>
 
     <!-- フィード切り替えタブ -->
@@ -486,7 +483,7 @@
       if (user) {
         c.innerHTML = `
           <div class="flex items-center gap-1.5">
-            <button onclick="openProfile('${user.username}')" class="navy-btn-outline text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 transition">
+            <button onclick="openProfile('${encodeURIComponent(user.username)}')" class="navy-btn-outline text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 transition">
               <span>👤</span><span>Account</span>
             </button>
             <button onclick="logout()" class="text-[9px] font-bold tracking-wider text-slate-400 hover:text-slate-900 uppercase transition px-1">
@@ -500,7 +497,7 @@
           myImg.innerText = '';
         } else {
           myImg.style.backgroundImage = 'none';
-          myImg.innerText = user.display_name.charAt(0).toUpperCase();
+          myImg.innerText = (user.display_name || user.username).charAt(0).toUpperCase();
         }
       } else {
         c.innerHTML = '';
@@ -514,7 +511,7 @@
       updateViewState(false);
     };
 
-    // --- ストーリートレイ（フォロー中ユーザー） ---
+    // --- ストーリートレイ ---
     async function loadStories() {
       const token = getToken();
       if (!token) return;
@@ -538,7 +535,7 @@
           const bgStyle = s.avatar_url ? `style="background-image: url('${s.avatar_url}')"` : '';
           const ringColor = s.has_recent_spot ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-300';
           return `
-            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="filterByUser('${s.username}')">
+            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="filterByUser('${encodeURIComponent(s.username)}')">
               <div class="w-13 h-13 rounded-full border-2 ${ringColor} p-0.5">
                 <div class="w-12 h-12 rounded-full bg-slate-200 bg-cover bg-center flex items-center justify-center font-bold text-xs" ${bgStyle}>
                   ${!s.avatar_url ? s.display_name.charAt(0).toUpperCase() : ''}
@@ -553,12 +550,12 @@
       }
     }
 
-    window.filterByUser = function(username) {
-      currentFilterUser = username;
+    window.filterByUser = function(encodedUsername) {
+      currentFilterUser = decodeURIComponent(encodedUsername);
       loadSpots();
     };
 
-    // --- 通知機能 ---
+    // --- 通知 ---
     async function loadNotifications() {
       const token = getToken();
       if (!token) return;
@@ -582,7 +579,7 @@
             listEl.innerHTML = '<p class="text-center text-slate-400 py-6">新しい通知はありません</p>';
           } else {
             listEl.innerHTML = notifs.map(n => `
-              <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${n.sender_username}'); closeNotificationsModal();">
+              <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
                 <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
                   ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
                 </div>
@@ -613,7 +610,7 @@
       document.getElementById('notificationsModal').classList.add('hidden');
     };
 
-    // --- ログイン & サインアップ制御 ---
+    // --- 認証 ---
     let isGateRegisterMode = false;
     const gateToggleBtn = document.getElementById('gateToggleBtn');
     const gateTitle = document.getElementById('gateTitle');
@@ -703,7 +700,7 @@
       }
 
       listEl.innerHTML = users.map(u => `
-        <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserSearchModal(); openProfile('${u.username}');">
+        <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserSearchModal(); openProfile('${encodeURIComponent(u.username)}');">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
               ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
@@ -738,7 +735,7 @@
           listEl.innerHTML = '<p class="text-center text-slate-400 py-6">メッセージのやり取りはありません<br><span class="text-[10px]">ユーザー検索からDMを送ってみましょう！</span></p>';
         } else {
           listEl.innerHTML = users.map(u => `
-            <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeConversationsModal(); openDmChat('${u.username}');">
+            <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeConversationsModal(); openDmChat('${encodeURIComponent(u.username)}');">
               <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
                   ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
@@ -760,7 +757,8 @@
       document.getElementById('conversationsModal').classList.add('hidden');
     };
 
-    window.openDmChat = async function(username) {
+    window.openDmChat = async function(rawUsername) {
+      const username = decodeURIComponent(rawUsername);
       activeDmPartner = username;
       closeProfileModal();
       document.getElementById('dmPartnerTitle').innerText = `@${username} とのDM`;
@@ -776,14 +774,14 @@
     async function loadDmMessages() {
       if (!activeDmPartner) return;
       const token = getToken();
-      const res = await fetch(`/messages/${activeDmPartner}`, {
+      const res = await fetch(`/messages/${encodeURIComponent(activeDmPartner)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const msgs = await res.json();
         const list = document.getElementById('dmMessageList');
         list.innerHTML = msgs.map(m => {
-          const isMe = m.sender_username === currentUser.username;
+          const isMe = m.sender_username.toLowerCase() === currentUser.username.toLowerCase();
           return `
             <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
               <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
@@ -872,7 +870,7 @@
           return `
             <article class="navy-card rounded-2xl overflow-hidden">
               <div class="px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-white">
-                <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${s.username}')">
+                <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${encodeURIComponent(s.username)}')">
                   <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
                     ${!s.author_avatar_url ? (s.display_name || s.username).charAt(0).toUpperCase() : ''}
                   </div>
@@ -889,7 +887,7 @@
                   <a href="${s.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 font-mono">
                     <span>MAP</span><span>↗</span>
                   </a>
-                  ${currentUser && currentUser.username === s.username ? `
+                  ${currentUser && currentUser.username.toLowerCase() === s.username.toLowerCase() ? `
                     <button onclick="deleteSpot('${s.id}')" class="text-slate-300 hover:text-rose-600 p-1">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
@@ -948,11 +946,12 @@
       }
     };
 
-    // --- プロフィール表示（修正版） ---
-    window.openProfile = async function(username) {
+    // --- プロフィール表示（空白・大文字対応版） ---
+    window.openProfile = async function(rawUsername) {
+      const username = decodeURIComponent(rawUsername);
       const token = getToken();
       try {
-        const res = await fetch(`/users/${username}`, {
+        const res = await fetch(`/users/${encodeURIComponent(username)}`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (!res.ok) {
@@ -980,14 +979,14 @@
         coverEl.style.backgroundImage = user.cover_url ? `url('${user.cover_url}')` : 'none';
 
         const act = document.getElementById('profileActionContainer');
-        if (currentUser && currentUser.username === user.username) {
+        if (currentUser && currentUser.username.toLowerCase() === user.username.toLowerCase()) {
           act.innerHTML = `<button onclick="openEditProfile()" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">EDIT PROFILE</button>`;
         } else {
           act.innerHTML = `
-            <button onclick="toggleFollowUser('${user.username}')" class="navy-btn text-[10px] font-bold px-3 py-1 rounded-full">
+            <button onclick="toggleFollowUser('${encodeURIComponent(user.username)}')" class="navy-btn text-[10px] font-bold px-3 py-1 rounded-full">
               ${user.is_following ? 'フォロー中' : 'フォロー'}
             </button>
-            <button onclick="openDmChat('${user.username}')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+            <button onclick="openDmChat('${encodeURIComponent(user.username)}')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
               <span>✉️</span><span>DM</span>
             </button>
           `;
@@ -1003,11 +1002,12 @@
       document.getElementById('profileModal').classList.add('hidden');
     };
 
-    window.toggleFollowUser = async function(username) {
+    window.toggleFollowUser = async function(rawUsername) {
+      const username = decodeURIComponent(rawUsername);
       const token = getToken();
       if (!token) return;
 
-      const res = await fetch(`/users/${username}/follow`, {
+      const res = await fetch(`/users/${encodeURIComponent(username)}/follow`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1181,7 +1181,6 @@
       }
     });
 
-    // 初期化チェック
     checkAuth();
   </script>
 </body>
