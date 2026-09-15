@@ -1,15 +1,24 @@
 FROM python:3.11-slim
 
-WORKDIR /workspace
-
+# PostGIS / C言語系パッケージの依存をインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    libgeos-dev \
+    libgdal-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-# 既存の記述の最後
+
+# アップロード用フォルダを確実に生成
+RUN mkdir -p static/uploads
+
+EXPOSE 8000
+
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -1,12 +1,13 @@
 import os
 import shutil
 import uuid
+import traceback
 from datetime import datetime, timedelta
 from typing import Optional, List
 
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import text, or_, and_, desc
@@ -20,25 +21,29 @@ from app.database import engine, Base, get_db
 import app.models as models
 
 # -------------------------------------------------------------
-# 1. データベースの初期化（起動時に PostGIS とテーブルを自動生成）
+# 1. データベース自動初期化（PostGIS有効化 ＆ 全テーブル作成）
 # -------------------------------------------------------------
-try:
-    with engine.connect() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
-        conn.commit()
-except Exception as e:
-    print(f"Warning: Failed to enable PostGIS extension: {e}")
+def init_db():
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+    except Exception as e:
+        print(f"[DB Init] Note on postgis extension: {e}")
 
-# models に定義されているテーブル（users, spots, likes, follows, messages など）を一括自動生成
-models.Base.metadata.create_all(bind=engine)
+    try:
+        models.Base.metadata.create_all(bind=engine)
+        print("[DB Init] All database tables created/verified successfully.")
+    except Exception as e:
+        print(f"[DB Init Error] Failed to create tables: {e}")
 
+init_db()
 
 # -------------------------------------------------------------
 # 2. セキュリティ & JWT 設定
 # -------------------------------------------------------------
-SECRET_KEY = os.getenv("SECRET_KEY", "travel-log-super-secret-key-2026")
+SECRET_KEY = os.getenv("SECRET_KEY", "travel-log-production-secret-2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7日間有効
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7日間
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -54,11 +59,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-
 # -------------------------------------------------------------
-# 3. FastAPI アプリケーション設定
+# 3. アプリ本体 & CORS / 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log API", version="1.0.0")
+app = FastAPI(title="Travel Log", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -68,14 +72,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# アップロードディレクトリの作成と静的ファイル配信
 UPLOAD_DIR = os.path.join("static", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
 # -------------------------------------------------------------
-# 4. Pydantic スキーマ定義
+# 4. スキーマ
 # -------------------------------------------------------------
 class UserRegister(BaseModel):
     username: str
@@ -87,31 +89,9 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
-class UserResponse(BaseModel):
-    id: int
-    username: str
-    display_name: Optional[str] = None
-    email: Optional[str] = None
-    bio: Optional[str] = None
-    avatar_url: Optional[str] = None
-    cover_url: Optional[str] = None
-    following_count: int = 0
-    followers_count: int = 0
-    is_following: Optional[bool] = False
-
-    class Config:
-        from_attributes = True
-
 class DmCreate(BaseModel):
     recipient_username: str
     content: str
-
-
-# -------------------------------------------------------------
-# 5. 認証ヘルパー（トークンからログインユーザーを取得）
-# -------------------------------------------------------------
-def get_current_user_optional(db: Session = Depends(get_db), token: Optional[str] = None) -> Optional[models.User]:
-    return None
 
 from fastapi.security import OAuth2PasswordBearer
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
@@ -122,13 +102,13 @@ def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db: Session 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None:
+        if not username:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="無効なトークンです")
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="トークンの検証に失敗しました")
     
     user = db.query(models.User).filter(models.User.username == username).first()
-    if user is None:
+    if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="ユーザーが存在しません")
     return user
 
@@ -144,20 +124,20 @@ def get_current_user_maybe(token: Optional[str] = Depends(oauth2_scheme), db: Se
         return None
     return None
 
-
 # -------------------------------------------------------------
-# 6. 認証エンドポイント
+# 5. 認証ルート
 # -------------------------------------------------------------
 @app.post("/auth/register")
 def register(user_in: UserRegister, db: Session = Depends(get_db)):
-    existing = db.query(models.User).filter(models.User.username == user_in.username).first()
+    clean_username = user_in.username.strip().lower()
+    existing = db.query(models.User).filter(models.User.username == clean_username).first()
     if existing:
         raise HTTPException(status_code=400, detail="そのユーザーIDは既に使用されています")
     
     new_user = models.User(
-        username=user_in.username,
-        display_name=user_in.display_name or user_in.username,
-        email=user_in.email,
+        username=clean_username,
+        display_name=user_in.display_name.strip() if user_in.display_name else clean_username,
+        email=user_in.email.strip() if user_in.email else None,
         hashed_password=get_password_hash(user_in.password),
         bio="旅の記録をはじめました。",
     )
@@ -181,7 +161,8 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
 
 @app.post("/auth/login")
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == user_in.username).first()
+    clean_username = user_in.username.strip().lower()
+    user = db.query(models.User).filter(models.User.username == clean_username).first()
     if not user or not verify_password(user_in.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="ユーザー名またはパスワードが間違っています")
     
@@ -211,121 +192,8 @@ def get_me(current_user: models.User = Depends(get_current_user)):
         "cover_url": current_user.cover_url
     }
 
-
 # -------------------------------------------------------------
-# 7. ユーザープロフィール & フォロー & 検索
-# -------------------------------------------------------------
-@app.get("/users/search")
-def search_users(q: str = Query(""), db: Session = Depends(get_db)):
-    if not q.strip():
-        return []
-    users = db.query(models.User).filter(
-        or_(
-            models.User.username.ilike(f"%{q}%"),
-            models.User.display_name.ilike(f"%{q}%")
-        )
-    ).limit(10).all()
-    return [{
-        "id": u.id,
-        "username": u.username,
-        "display_name": u.display_name,
-        "avatar_url": u.avatar_url
-    } for u in users]
-
-@app.get("/users/{username}")
-def get_profile(username: str, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
-    target = db.query(models.User).filter(models.User.username == username).first()
-    if not target:
-        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
-    
-    following_count = db.query(models.Follow).filter(models.Follow.follower_id == target.id).count()
-    followers_count = db.query(models.Follow).filter(models.Follow.followed_id == target.id).count()
-    
-    is_following = False
-    if current_user:
-        is_following = db.query(models.Follow).filter(
-            models.Follow.follower_id == current_user.id,
-            models.Follow.followed_id == target.id
-        ).first() is not None
-
-    return {
-        "id": target.id,
-        "username": target.username,
-        "display_name": target.display_name,
-        "bio": target.bio,
-        "avatar_url": target.avatar_url,
-        "cover_url": target.cover_url,
-        "following_count": following_count,
-        "followers_count": followers_count,
-        "is_following": is_following
-    }
-
-@app.post("/users/{username}/follow")
-def toggle_follow(username: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    target = db.query(models.User).filter(models.User.username == username).first()
-    if not target:
-        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
-    if target.id == current_user.id:
-        raise HTTPException(status_code=400, detail="自分自身はフォローできません")
-    
-    follow_rel = db.query(models.Follow).filter(
-        models.Follow.follower_id == current_user.id,
-        models.Follow.followed_id == target.id
-    ).first()
-    
-    if follow_rel:
-        db.delete(follow_rel)
-        db.commit()
-        return {"following": False}
-    else:
-        db.add(models.Follow(follower_id=current_user.id, followed_id=target.id))
-        db.commit()
-        return {"following": True}
-
-@app.post("/users/profile")
-def update_profile(
-    display_name: Optional[str] = Form(None),
-    bio: Optional[str] = Form(None),
-    avatar: Optional[UploadFile] = File(None),
-    cover: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    if display_name is not None:
-        current_user.display_name = display_name
-    if bio is not None:
-        current_user.bio = bio
-        
-    if avatar and avatar.filename:
-        ext = os.path.splitext(avatar.filename)[1]
-        fname = f"avatar_{uuid.uuid4()}{ext}"
-        path = os.path.join(UPLOAD_DIR, fname)
-        with open(path, "wb") as buffer:
-            shutil.copyfileobj(avatar.file, buffer)
-        current_user.avatar_url = f"/static/uploads/{fname}"
-
-    if cover and cover.filename:
-        ext = os.path.splitext(cover.filename)[1]
-        fname = f"cover_{uuid.uuid4()}{ext}"
-        path = os.path.join(UPLOAD_DIR, fname)
-        with open(path, "wb") as buffer:
-            shutil.copyfileobj(cover.file, buffer)
-        current_user.cover_url = f"/static/uploads/{fname}"
-
-    db.commit()
-    db.refresh(current_user)
-    return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "display_name": current_user.display_name,
-        "bio": current_user.bio,
-        "avatar_url": current_user.avatar_url,
-        "cover_url": current_user.cover_url
-    }
-
-
-# -------------------------------------------------------------
-# 8. スポット（旅ログ）投稿 & フィード & いいね
+# 6. スポット（旅ログ）
 # -------------------------------------------------------------
 @app.get("/spots")
 def get_spots(
@@ -334,50 +202,62 @@ def get_spots(
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user_maybe)
 ):
-    query = db.query(models.Spot)
+    try:
+        query = db.query(models.Spot)
 
-    if feed_type == "following" and current_user:
-        followed_ids = db.query(models.Follow.followed_id).filter(models.Follow.follower_id == current_user.id).subquery()
-        query = query.filter(models.Spot.user_id.in_(followed_ids))
+        if feed_type == "following" and current_user:
+            followed_ids = db.query(models.Follow.followed_id).filter(models.Follow.follower_id == current_user.id).subquery()
+            query = query.filter(models.Spot.user_id.in_(followed_ids))
 
-    if target_date:
-        try:
-            d = datetime.strptime(target_date, "%Y-%m-%d")
-            start = datetime(d.year, d.month, d.day, 0, 0, 0)
-            end = datetime(d.year, d.month, d.day, 23, 59, 59)
-            query = query.filter(models.Spot.visited_at >= start, models.Spot.visited_at <= end)
-        except ValueError:
-            pass
+        if target_date:
+            try:
+                d = datetime.strptime(target_date, "%Y-%m-%d")
+                start = datetime(d.year, d.month, d.day, 0, 0, 0)
+                end = datetime(d.year, d.month, d.day, 23, 59, 59)
+                query = query.filter(models.Spot.visited_at >= start, models.Spot.visited_at <= end)
+            except ValueError:
+                pass
 
-    spots = query.order_by(desc(models.Spot.visited_at)).all()
+        spots = query.order_by(desc(models.Spot.visited_at)).all()
 
-    result = []
-    for s in spots:
-        point = to_shape(s.geom)
-        likes_count = db.query(models.Like).filter(models.Like.spot_id == s.id).count()
-        is_liked = False
-        if current_user:
-            is_liked = db.query(models.Like).filter(models.Like.spot_id == s.id, models.Like.user_id == current_user.id).first() is not None
+        result = []
+        for s in spots:
+            lat = 0.0
+            lng = 0.0
+            try:
+                point = to_shape(s.geom)
+                lat = float(point.y)
+                lng = float(point.x)
+            except Exception:
+                pass
 
-        author = s.author
-        result.append({
-            "id": s.id,
-            "name": s.name,
-            "memo": s.memo,
-            "media_url": s.media_url,
-            "media_type": s.media_type,
-            "visited_at": s.visited_at.isoformat(),
-            "latitude": point.y,
-            "longitude": point.x,
-            "google_map_url": f"https://www.google.com/maps/search/?api=1&query={point.y},{point.x}",
-            "user_id": s.user_id,
-            "username": author.username if author else "anonymous",
-            "display_name": author.display_name if author else "Traveler",
-            "author_avatar_url": author.avatar_url if author else None,
-            "likes_count": likes_count,
-            "is_liked": is_liked
-        })
-    return result
+            likes_count = db.query(models.Like).filter(models.Like.spot_id == s.id).count()
+            is_liked = False
+            if current_user:
+                is_liked = db.query(models.Like).filter(models.Like.spot_id == s.id, models.Like.user_id == current_user.id).first() is not None
+
+            author = s.author
+            result.append({
+                "id": s.id,
+                "name": s.name,
+                "memo": s.memo,
+                "media_url": s.media_url,
+                "media_type": s.media_type,
+                "visited_at": s.visited_at.isoformat() if s.visited_at else datetime.utcnow().isoformat(),
+                "latitude": lat,
+                "longitude": lng,
+                "google_map_url": f"https://www.google.com/maps/search/?api=1&query={lat},{lng}",
+                "user_id": s.user_id,
+                "username": author.username if author else "anonymous",
+                "display_name": author.display_name if author else "Traveler",
+                "author_avatar_url": author.avatar_url if author else None,
+                "likes_count": likes_count,
+                "is_liked": is_liked
+            })
+        return result
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch spots: {str(e)}")
 
 @app.post("/spots/upload")
 def create_spot(
@@ -390,38 +270,43 @@ def create_spot(
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user_maybe)
 ):
-    media_url = None
-    media_type = None
+    try:
+        media_url = None
+        media_type = None
 
-    if file and file.filename:
-        ext = os.path.splitext(file.filename)[1].lower()
-        fname = f"{uuid.uuid4()}{ext}"
-        path = os.path.join(UPLOAD_DIR, fname)
-        with open(path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        media_url = f"/static/uploads/{fname}"
-        media_type = "video" if ext in [".mp4", ".mov", ".webm"] else "image"
+        if file and file.filename:
+            ext = os.path.splitext(file.filename)[1].lower()
+            fname = f"{uuid.uuid4()}{ext}"
+            path = os.path.join(UPLOAD_DIR, fname)
+            with open(path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            media_url = f"/static/uploads/{fname}"
+            media_type = "video" if ext in [".mp4", ".mov", ".webm"] else "image"
 
-    visit_time = datetime.utcnow()
-    if visited_at:
-        try:
-            visit_time = datetime.fromisoformat(visited_at)
-        except Exception:
-            pass
+        visit_time = datetime.utcnow()
+        if visited_at:
+            try:
+                visit_time = datetime.fromisoformat(visited_at)
+            except Exception:
+                pass
 
-    spot = models.Spot(
-        name=name,
-        memo=memo,
-        media_url=media_url,
-        media_type=media_type,
-        visited_at=visit_time,
-        geom=WKTElement(f"POINT({longitude} {latitude})", srid=4326),
-        user_id=current_user.id if current_user else None
-    )
-    db.add(spot)
-    db.commit()
-    db.refresh(spot)
-    return {"status": "success", "id": spot.id}
+        spot = models.Spot(
+            name=name.strip(),
+            memo=memo.strip() if memo else None,
+            media_url=media_url,
+            media_type=media_type,
+            visited_at=visit_time,
+            geom=WKTElement(f"POINT({longitude} {latitude})", srid=4326),
+            user_id=current_user.id if current_user else None
+        )
+        db.add(spot)
+        db.commit()
+        db.refresh(spot)
+        return {"status": "success", "id": spot.id}
+    except Exception as e:
+        db.rollback()
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to upload spot: {str(e)}")
 
 @app.post("/spots/{spot_id}/like")
 def toggle_spot_like(spot_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -449,9 +334,120 @@ def delete_spot(spot_id: int, db: Session = Depends(get_db), current_user: model
     db.commit()
     return {"status": "deleted"}
 
+# -------------------------------------------------------------
+# 7. プロフィール & フォロー & 検索
+# -------------------------------------------------------------
+@app.get("/users/search")
+def search_users(q: str = Query(""), db: Session = Depends(get_db)):
+    clean_q = q.strip()
+    if not clean_q:
+        return []
+    users = db.query(models.User).filter(
+        or_(
+            models.User.username.ilike(f"%{clean_q}%"),
+            models.User.display_name.ilike(f"%{clean_q}%")
+        )
+    ).limit(10).all()
+    return [{
+        "id": u.id,
+        "username": u.username,
+        "display_name": u.display_name,
+        "avatar_url": u.avatar_url
+    } for u in users]
+
+@app.get("/users/{username}")
+def get_profile(username: str, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
+    target = db.query(models.User).filter(models.User.username == username.strip().lower()).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+    
+    following_count = db.query(models.Follow).filter(models.Follow.follower_id == target.id).count()
+    followers_count = db.query(models.Follow).filter(models.Follow.followed_id == target.id).count()
+    
+    is_following = False
+    if current_user:
+        is_following = db.query(models.Follow).filter(
+            models.Follow.follower_id == current_user.id,
+            models.Follow.followed_id == target.id
+        ).first() is not None
+
+    return {
+        "id": target.id,
+        "username": target.username,
+        "display_name": target.display_name,
+        "bio": target.bio,
+        "avatar_url": target.avatar_url,
+        "cover_url": target.cover_url,
+        "following_count": following_count,
+        "followers_count": followers_count,
+        "is_following": is_following
+    }
+
+@app.post("/users/{username}/follow")
+def toggle_follow(username: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    target = db.query(models.User).filter(models.User.username == username.strip().lower()).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+    if target.id == current_user.id:
+        raise HTTPException(status_code=400, detail="自分自身はフォローできません")
+    
+    rel = db.query(models.Follow).filter(
+        models.Follow.follower_id == current_user.id,
+        models.Follow.followed_id == target.id
+    ).first()
+    
+    if rel:
+        db.delete(rel)
+        db.commit()
+        return {"following": False}
+    else:
+        db.add(models.Follow(follower_id=current_user.id, followed_id=target.id))
+        db.commit()
+        return {"following": True}
+
+@app.post("/users/profile")
+def update_profile(
+    display_name: Optional[str] = Form(None),
+    bio: Optional[str] = Form(None),
+    avatar: Optional[UploadFile] = File(None),
+    cover: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if display_name is not None:
+        current_user.display_name = display_name.strip()
+    if bio is not None:
+        current_user.bio = bio.strip()
+        
+    if avatar and avatar.filename:
+        ext = os.path.splitext(avatar.filename)[1].lower()
+        fname = f"avatar_{uuid.uuid4()}{ext}"
+        path = os.path.join(UPLOAD_DIR, fname)
+        with open(path, "wb") as buffer:
+            shutil.copyfileobj(avatar.file, buffer)
+        current_user.avatar_url = f"/static/uploads/{fname}"
+
+    if cover and cover.filename:
+        ext = os.path.splitext(cover.filename)[1].lower()
+        fname = f"cover_{uuid.uuid4()}{ext}"
+        path = os.path.join(UPLOAD_DIR, fname)
+        with open(path, "wb") as buffer:
+            shutil.copyfileobj(cover.file, buffer)
+        current_user.cover_url = f"/static/uploads/{fname}"
+
+    db.commit()
+    db.refresh(current_user)
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "display_name": current_user.display_name,
+        "bio": current_user.bio,
+        "avatar_url": current_user.avatar_url,
+        "cover_url": current_user.cover_url
+    }
 
 # -------------------------------------------------------------
-# 9. ダイレクトメッセージ（DM）
+# 8. DM (ダイレクトメッセージ)
 # -------------------------------------------------------------
 @app.get("/messages/conversations")
 def get_conversations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -475,7 +471,7 @@ def get_conversations(db: Session = Depends(get_db), current_user: models.User =
 
 @app.get("/messages/{partner_username}")
 def get_messages(partner_username: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    partner = db.query(models.User).filter(models.User.username == partner_username).first()
+    partner = db.query(models.User).filter(models.User.username == partner_username.strip().lower()).first()
     if not partner:
         raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
 
@@ -495,27 +491,26 @@ def get_messages(partner_username: str, db: Session = Depends(get_db), current_u
 
 @app.post("/messages")
 def send_message(payload: DmCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    recipient = db.query(models.User).filter(models.User.username == payload.recipient_username).first()
+    recipient = db.query(models.User).filter(models.User.username == payload.recipient_username.strip().lower()).first()
     if not recipient:
         raise HTTPException(status_code=404, detail="送信先ユーザーが見つかりません")
 
     msg = models.Message(
         sender_id=current_user.id,
         recipient_id=recipient.id,
-        content=payload.content
+        content=payload.content.strip()
     )
     db.add(msg)
     db.commit()
     db.refresh(msg)
     return {"status": "sent", "id": msg.id}
 
-
 # -------------------------------------------------------------
-# 10. トップページ配信（index.html）
+# 9. トップページ (index.html)
 # -------------------------------------------------------------
 @app.get("/")
 def serve_index():
     index_path = os.path.join("static", "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"message": "Travel Log API is running. static/index.html not found."}
+    return {"message": "Travel Log API is running. static/index.html was not found."}
