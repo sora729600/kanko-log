@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, UniqueConstraint, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
@@ -21,6 +21,7 @@ class User(Base):
 
     spots = relationship("Spot", back_populates="author", cascade="all, delete-orphan")
     likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="recipient", cascade="all, delete-orphan", foreign_keys="Notification.recipient_id")
 
 
 class Spot(Base):
@@ -73,3 +74,18 @@ class Message(Base):
     recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String(50), nullable=False)  # 'follow', 'new_post'
+    message = Column(String(255), nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    recipient = relationship("User", foreign_keys=[recipient_id], back_populates="notifications")
+    sender = relationship("User", foreign_keys=[sender_id])

@@ -21,7 +21,7 @@ from app.database import engine, Base, get_db
 import app.models as models
 
 # -------------------------------------------------------------
-# 1. データベース自動初期化（PostGIS有効化 ＆ 全テーブル作成）
+# 1. データベース自動初期化（PostGIS & テーブル作成）
 # -------------------------------------------------------------
 def init_db():
     try:
@@ -32,18 +32,18 @@ def init_db():
 
     try:
         models.Base.metadata.create_all(bind=engine)
-        print("[DB Init] All database tables created/verified successfully.")
+        print("[DB Init] All database tables created/verified.")
     except Exception as e:
-        print(f"[DB Init Error] Failed to create tables: {e}")
+        print(f"[DB Init Error] Table creation error: {e}")
 
 init_db()
 
 # -------------------------------------------------------------
-# 2. セキュリティ & JWT 設定
+# 2. セキュリティ & JWT
 # -------------------------------------------------------------
 SECRET_KEY = os.getenv("SECRET_KEY", "travel-log-production-secret-2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7日間
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -60,9 +60,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # -------------------------------------------------------------
-# 3. アプリ本体 & CORS / 静的ファイル
+# 3. アプリ & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.0.0")
+app = FastAPI(title="Travel Log", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -125,7 +125,7 @@ def get_current_user_maybe(token: Optional[str] = Depends(oauth2_scheme), db: Se
     return None
 
 # -------------------------------------------------------------
-# 5. 認証ルート
+# 5. 認証エンドポイント
 # -------------------------------------------------------------
 @app.post("/auth/register")
 def register(user_in: UserRegister, db: Session = Depends(get_db)):
@@ -193,30 +193,55 @@ def get_me(current_user: models.User = Depends(get_current_user)):
     }
 
 # -------------------------------------------------------------
-# 6. スポット（旅ログ）
+# 6. ストーリー風（フォロー中ユーザー）バー
+# -------------------------------------------------------------
+@app.get("/users/following/stories")
+def get_following_stories(db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
+    if not current_user:
+        return []
+
+    # 自分がフォローしている人たち
+    follows = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id).all()
+    followed_ids = [f.followed_id for f in follows]
+    if not followed_ids:
+        return []
+
+    users = db.query(models.User).filter(models.User.id.in_(followed_ids)).all()
+    res = []
+    for u in users:
+        # 最新の投稿があるか確認
+        latest_spot = db.query(models.Spot).filter(models.Spot.user_id == u.id).order_by(desc(models.Spot.visited_at)).first()
+        res.append({
+            "id": str(u.id),
+            "username": u.username,
+            "display_name": u.display_name or u.username,
+            "avatar_url": u.avatar_url,
+            "has_recent_spot": latest_spot is not None
+        })
+    return res
+
+# -------------------------------------------------------------
+# 7. スポット（旅ログ）投稿 & フィード
 # -------------------------------------------------------------
 @app.get("/spots")
 def get_spots(
     feed_type: str = "all",
-    target_date: Optional[str] = None,
+    target_username: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user_maybe)
 ):
     try:
         query = db.query(models.Spot)
 
-        if feed_type == "following" and current_user:
+        if target_username:
+            target_user = db.query(models.User).filter(models.User.username == target_username.strip().lower()).first()
+            if target_user:
+                query = query.filter(models.Spot.user_id == target_user.id)
+            else:
+                return []
+        elif feed_type == "following" and current_user:
             followed_ids = db.query(models.Follow.followed_id).filter(models.Follow.follower_id == current_user.id).subquery()
             query = query.filter(models.Spot.user_id.in_(followed_ids))
-
-        if target_date:
-            try:
-                d = datetime.strptime(target_date, "%Y-%m-%d")
-                start = datetime(d.year, d.month, d.day, 0, 0, 0)
-                end = datetime(d.year, d.month, d.day, 23, 59, 59)
-                query = query.filter(models.Spot.visited_at >= start, models.Spot.visited_at <= end)
-            except ValueError:
-                pass
 
         spots = query.order_by(desc(models.Spot.visited_at)).all()
 
@@ -302,6 +327,20 @@ def create_spot(
         db.add(spot)
         db.commit()
         db.refresh(spot)
+
+        # フォロワー全員に「新規投稿」通知を作成
+        if current_user:
+            followers = db.query(models.Follow).filter(models.Follow.followed_id == current_user.id).all()
+            for f in followers:
+                notif = models.Notification(
+                    recipient_id=f.follower_id,
+                    sender_id=current_user.id,
+                    type="new_post",
+                    message=f"@{current_user.username} さんが新しい思い出「{spot.name}」を投稿しました！"
+                )
+                db.add(notif)
+            db.commit()
+
         return {"status": "success", "id": str(spot.id)}
     except Exception as e:
         db.rollback()
@@ -345,7 +384,7 @@ def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: model
     return {"status": "deleted"}
 
 # -------------------------------------------------------------
-# 7. プロフィール & フォロー & 検索
+# 8. プロフィール & フォロー & 検索
 # -------------------------------------------------------------
 @app.get("/users/search")
 def search_users(q: str = Query(""), db: Session = Depends(get_db)):
@@ -412,6 +451,14 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: mo
         return {"following": False}
     else:
         db.add(models.Follow(follower_id=current_user.id, followed_id=target.id))
+        # フォローされた相手に通知を作成
+        notif = models.Notification(
+            recipient_id=target.id,
+            sender_id=current_user.id,
+            type="follow",
+            message=f"@{current_user.username} さんにフォローされました！"
+        )
+        db.add(notif)
         db.commit()
         return {"following": True}
 
@@ -457,7 +504,39 @@ def update_profile(
     }
 
 # -------------------------------------------------------------
-# 8. DM (ダイレクトメッセージ)
+# 9. 通知（Notifications）
+# -------------------------------------------------------------
+@app.get("/notifications")
+def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    notifs = db.query(models.Notification).filter(
+        models.Notification.recipient_id == current_user.id
+    ).order_by(desc(models.Notification.created_at)).limit(30).all()
+
+    res = []
+    for n in notifs:
+        sender = n.sender
+        res.append({
+            "id": str(n.id),
+            "type": n.type,
+            "message": n.message,
+            "is_read": n.is_read,
+            "created_at": n.created_at.isoformat(),
+            "sender_username": sender.username if sender else "someone",
+            "sender_avatar_url": sender.avatar_url if sender else None
+        })
+    return res
+
+@app.post("/notifications/read")
+def mark_notifications_read(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db.query(models.Notification).filter(
+        models.Notification.recipient_id == current_user.id,
+        models.Notification.is_read == False
+    ).update({"is_read": True})
+    db.commit()
+    return {"status": "ok"}
+
+# -------------------------------------------------------------
+# 10. DM (ダイレクトメッセージ)
 # -------------------------------------------------------------
 @app.get("/messages/conversations")
 def get_conversations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -516,7 +595,7 @@ def send_message(payload: DmCreate, db: Session = Depends(get_db), current_user:
     return {"status": "sent", "id": str(msg.id)}
 
 # -------------------------------------------------------------
-# 9. トップページ (index.html)
+# 11. トップページ
 # -------------------------------------------------------------
 @app.get("/")
 def serve_index():

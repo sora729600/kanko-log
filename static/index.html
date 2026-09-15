@@ -56,12 +56,17 @@
       background-color: #0f172a;
       color: #ffffff;
     }
-    .leaflet-tile {
-      filter: contrast(1.05) saturate(0.85);
-    }
     .passport-badge {
       border: 1px dashed #0f172a;
       letter-spacing: 0.15em;
+    }
+    /* 横スクロールバー非表示 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   </style>
 </head>
@@ -83,7 +88,6 @@
       </p>
     </div>
 
-    <!-- ミニグラフィックカード -->
     <div class="my-8 navy-card rounded-2xl p-5 bg-white relative overflow-hidden">
       <div class="text-[10px] font-mono text-slate-400 tracking-widest uppercase mb-1">Passport / Archive #01</div>
       <div class="text-sm font-bold text-slate-900 mb-3">旅の記憶を鮮明に、シンプルに美しく。</div>
@@ -94,16 +98,16 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>お互いのログを共有するフォロー & DM</span>
+          <span>友達の最新ログが並ぶストーリーバー</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>日付と写真で振り返るトラベルジャーナル</span>
+          <span>フォロー・投稿のリアルタイム通知</span>
         </div>
       </div>
     </div>
 
-    <!-- 認証フォーム（ログイン / 新規登録） -->
+    <!-- 認証フォーム -->
     <div class="bg-white border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
       <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-4">
         <h2 id="gateTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">SIGN IN TO YOUR LOG</h2>
@@ -161,14 +165,24 @@
         <p class="text-[9px] tracking-[0.25em] text-slate-500 uppercase font-medium">Archive of Moments</p>
       </div>
 
-      <div class="flex items-center gap-2.5">
-        <button onclick="openUserSearchModal()" class="text-slate-700 hover:text-slate-950 p-1 transition" title="ユーザーを探す">
+      <div class="flex items-center gap-2">
+        <!-- ユーザー検索 -->
+        <button onclick="openUserSearchModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition" title="ユーザーを探す">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </button>
 
-        <button onclick="openConversationsModal()" class="text-slate-700 hover:text-slate-950 p-1 transition relative" title="メッセージ">
+        <!-- 通知ベル -->
+        <button onclick="openNotificationsModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition relative" title="通知">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span id="notifBadge" class="hidden absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+        </button>
+
+        <!-- DM -->
+        <button onclick="openConversationsModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition" title="メッセージ">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
@@ -176,36 +190,55 @@
 
         <div id="authStatusContainer"></div>
 
-        <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm">
-          <span>+ ADD</span>
+        <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm ml-1">
+          <span>+</span>
         </button>
       </div>
     </header>
 
+    <!-- ★ インスタ風ストーリー（フォロー中アカウント横並びバー） -->
+    <div id="storiesContainer" class="bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto no-scrollbar flex items-center gap-3.5">
+      <div id="myStoryAvatar" class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="openProfile(currentUser.username)">
+        <div class="w-13 h-13 rounded-full border-2 border-slate-900 p-0.5 relative">
+          <div id="myStoryImg" class="w-12 h-12 rounded-full bg-slate-100 bg-cover bg-center flex items-center justify-center font-bold text-xs">
+            +
+          </div>
+        </div>
+        <span class="text-[10px] font-bold text-slate-800 truncate w-14 text-center">My Log</span>
+      </div>
+
+      <div id="followingStoriesList" class="flex items-center gap-3.5">
+        <!-- JSで動的に追加 -->
+      </div>
+    </div>
+
     <!-- フィード切り替えタブ -->
-    <div class="px-4 pt-3 flex items-center gap-4 text-xs font-bold tracking-wider border-b border-slate-200">
+    <div class="px-4 pt-3 flex items-center gap-4 text-xs font-bold tracking-wider border-b border-slate-200 bg-white">
       <button id="tabAll" onclick="switchFeedTab('all')" class="pb-2 text-slate-900 border-b-2 border-slate-900">ALL</button>
       <button id="tabFollowing" onclick="switchFeedTab('following')" class="pb-2 text-slate-400 hover:text-slate-700">FOLLOWING</button>
     </div>
 
-    <!-- メインコンテンツ -->
+    <!-- メインフィード -->
     <main class="p-4 flex-1">
-      <div class="bg-white rounded-xl p-3 mb-5 flex items-center justify-between border border-slate-200 shadow-sm">
-        <div class="flex items-center gap-2">
-          <span class="text-[11px] font-bold tracking-wider text-slate-500 uppercase">DATE</span>
-          <input type="date" id="dateFilter" class="navy-input rounded-lg px-2.5 py-1 text-xs text-slate-800">
-        </div>
-        <button id="clearDate" class="text-[11px] font-semibold tracking-wider text-slate-500 hover:text-slate-900 px-2 py-1 transition">
-          RESET
-        </button>
-      </div>
-
       <div id="feed" class="space-y-7">
         <p class="text-center text-xs text-slate-400 py-12 tracking-widest uppercase font-medium">Loading...</p>
       </div>
     </main>
 
-    <!-- ユーザーID検索モーダル -->
+    <!-- 通知モーダル -->
+    <div id="notificationsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Notifications</h2>
+          <button onclick="closeNotificationsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="notificationsList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
+          <p class="text-center text-slate-400 py-6">新しい通知はありません</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ユーザー検索モーダル -->
     <div id="userSearchModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
@@ -395,6 +428,7 @@
 
   <script>
     let currentFeedTab = 'all';
+    let currentFilterUser = null;
     let currentUser = null;
     let activeDmPartner = null;
     let map = null;
@@ -404,8 +438,6 @@
     const appView = document.getElementById('appView');
     const feedEl = document.getElementById('feed');
     const formEl = document.getElementById('postForm');
-    const dateFilterEl = document.getElementById('dateFilter');
-    const clearDateEl = document.getElementById('clearDate');
     const postModal = document.getElementById('postModal');
 
     function getToken() { return localStorage.getItem('access_token'); }
@@ -435,6 +467,8 @@
           currentUser = await res.json();
           updateViewState(true);
           renderAuthUI(currentUser);
+          loadStories();
+          loadNotifications();
           loadSpots();
         } else {
           removeToken();
@@ -451,15 +485,23 @@
       const c = document.getElementById('authStatusContainer');
       if (user) {
         c.innerHTML = `
-          <div class="flex items-center gap-2">
-            <button onclick="openProfile('${user.username}')" class="navy-btn-outline text-[10px] font-bold tracking-wider px-3 py-1 rounded-full flex items-center gap-1 transition">
+          <div class="flex items-center gap-1.5">
+            <button onclick="openProfile('${user.username}')" class="navy-btn-outline text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 transition">
               <span>👤</span><span>Account</span>
             </button>
-            <button onclick="logout()" class="text-[9px] font-bold tracking-wider text-slate-400 hover:text-slate-900 uppercase transition">
+            <button onclick="logout()" class="text-[9px] font-bold tracking-wider text-slate-400 hover:text-slate-900 uppercase transition px-1">
               LOGOUT
             </button>
           </div>
         `;
+        const myImg = document.getElementById('myStoryImg');
+        if (user.avatar_url) {
+          myImg.style.backgroundImage = `url('${user.avatar_url}')`;
+          myImg.innerText = '';
+        } else {
+          myImg.style.backgroundImage = 'none';
+          myImg.innerText = user.display_name.charAt(0).toUpperCase();
+        }
       } else {
         c.innerHTML = '';
       }
@@ -472,6 +514,106 @@
       updateViewState(false);
     };
 
+    // --- ストーリートレイ（フォロー中ユーザー） ---
+    async function loadStories() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch('/users/following/stories', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const stories = await res.json();
+        const listEl = document.getElementById('followingStoriesList');
+
+        if (stories.length === 0) {
+          listEl.innerHTML = `
+            <span class="text-[10px] text-slate-400 italic shrink-0">友達を検索してフォローしてみましょう！</span>
+          `;
+          return;
+        }
+
+        listEl.innerHTML = stories.map(s => {
+          const bgStyle = s.avatar_url ? `style="background-image: url('${s.avatar_url}')"` : '';
+          const ringColor = s.has_recent_spot ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-300';
+          return `
+            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="filterByUser('${s.username}')">
+              <div class="w-13 h-13 rounded-full border-2 ${ringColor} p-0.5">
+                <div class="w-12 h-12 rounded-full bg-slate-200 bg-cover bg-center flex items-center justify-center font-bold text-xs" ${bgStyle}>
+                  ${!s.avatar_url ? s.display_name.charAt(0).toUpperCase() : ''}
+                </div>
+              </div>
+              <span class="text-[10px] font-bold text-slate-800 truncate w-14 text-center">${s.display_name}</span>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    window.filterByUser = function(username) {
+      currentFilterUser = username;
+      loadSpots();
+    };
+
+    // --- 通知機能 ---
+    async function loadNotifications() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch('/notifications', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const notifs = await res.json();
+          const hasUnread = notifs.some(n => !n.is_read);
+          const badge = document.getElementById('notifBadge');
+          if (hasUnread) {
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+
+          const listEl = document.getElementById('notificationsList');
+          if (notifs.length === 0) {
+            listEl.innerHTML = '<p class="text-center text-slate-400 py-6">新しい通知はありません</p>';
+          } else {
+            listEl.innerHTML = notifs.map(n => `
+              <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${n.sender_username}'); closeNotificationsModal();">
+                <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
+                  ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-slate-800 font-medium">${n.message}</p>
+                  <span class="text-[9px] text-slate-400 font-mono">${new Date(n.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (e) {}
+    }
+
+    window.openNotificationsModal = async function() {
+      document.getElementById('notificationsModal').classList.remove('hidden');
+      const token = getToken();
+      if (token) {
+        await fetch('/notifications/read', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        document.getElementById('notifBadge').classList.add('hidden');
+      }
+    };
+
+    window.closeNotificationsModal = function() {
+      document.getElementById('notificationsModal').classList.add('hidden');
+    };
+
+    // --- ログイン & サインアップ制御 ---
     let isGateRegisterMode = false;
     const gateToggleBtn = document.getElementById('gateToggleBtn');
     const gateTitle = document.getElementById('gateTitle');
@@ -522,6 +664,8 @@
           updateViewState(true);
           renderAuthUI(currentUser);
           gateAuthForm.reset();
+          loadStories();
+          loadNotifications();
           loadSpots();
         } else {
           alert(data.detail || '認証に失敗しました');
@@ -531,6 +675,7 @@
       }
     });
 
+    // --- ユーザー検索 ---
     window.openUserSearchModal = function() {
       document.getElementById('userSearchModal').classList.remove('hidden');
       document.getElementById('userSearchInput').focus();
@@ -580,6 +725,7 @@
       }
     });
 
+    // --- DM ---
     window.openConversationsModal = async function() {
       const token = getToken();
       const res = await fetch('/messages/conversations', {
@@ -614,8 +760,67 @@
       document.getElementById('conversationsModal').classList.add('hidden');
     };
 
+    window.openDmChat = async function(username) {
+      activeDmPartner = username;
+      closeProfileModal();
+      document.getElementById('dmPartnerTitle').innerText = `@${username} とのDM`;
+      document.getElementById('dmModal').classList.remove('hidden');
+      loadDmMessages();
+    };
+
+    window.closeDmModal = function() {
+      document.getElementById('dmModal').classList.add('hidden');
+      activeDmPartner = null;
+    };
+
+    async function loadDmMessages() {
+      if (!activeDmPartner) return;
+      const token = getToken();
+      const res = await fetch(`/messages/${activeDmPartner}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const msgs = await res.json();
+        const list = document.getElementById('dmMessageList');
+        list.innerHTML = msgs.map(m => {
+          const isMe = m.sender_username === currentUser.username;
+          return `
+            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+              <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
+                ${m.content}
+              </div>
+            </div>
+          `;
+        }).join('');
+        list.scrollTop = list.scrollHeight;
+      }
+    }
+
+    document.getElementById('dmSendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('dmInput');
+      const content = input.value.trim();
+      if (!content || !activeDmPartner) return;
+
+      const token = getToken();
+      const res = await fetch('/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ recipient_username: activeDmPartner, content })
+      });
+      if (res.ok) {
+        input.value = '';
+        loadDmMessages();
+      }
+    });
+
+    // --- フィード制御 ---
     window.switchFeedTab = function(tab) {
       currentFeedTab = tab;
+      currentFilterUser = null;
       const tabAll = document.getElementById('tabAll');
       const tabFollowing = document.getElementById('tabFollowing');
 
@@ -626,14 +831,16 @@
         tabAll.className = "pb-2 text-slate-400 hover:text-slate-700 font-medium";
         tabFollowing.className = "pb-2 text-slate-900 border-b-2 border-slate-900 font-bold";
       }
-      loadSpots(dateFilterEl.value);
+      loadSpots();
     };
 
-    async function loadSpots(date = '') {
+    async function loadSpots() {
       feedEl.innerHTML = '<p class="text-center text-xs text-slate-400 py-12 tracking-widest uppercase font-medium">Loading...</p>';
       const token = getToken();
       let url = `/spots?feed_type=${currentFeedTab}`;
-      if (date) url += `&target_date=${date}`;
+      if (currentFilterUser) {
+        url += `&target_username=${encodeURIComponent(currentFilterUser)}`;
+      }
 
       try {
         const res = await fetch(url, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
@@ -693,7 +900,7 @@
               ${s.media_url ? (
                 s.media_type === 'video' 
                   ? `<video src="${s.media_url}" controls class="w-full max-h-[440px] object-cover bg-black"></video>`
-                  : `<img src="${s.media_url}" class="w-full max-h-[440px] object-cover border-b border-slate-100" />`
+                  : `<img src="${s.media_url}" class="w-full max-h-[440px] object-cover border-b border-slate-100" onerror="this.style.display='none'" />`
               ) : ''}
 
               <div class="p-4 bg-white">
@@ -741,47 +948,55 @@
       }
     };
 
+    // --- プロフィール表示（修正版） ---
     window.openProfile = async function(username) {
       const token = getToken();
-      const res = await fetch(`/users/${username}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (!res.ok) return;
-      const user = await res.json();
+      try {
+        const res = await fetch(`/users/${username}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (!res.ok) {
+          alert('プロフィールを取得できませんでした');
+          return;
+        }
+        const user = await res.json();
 
-      document.getElementById('profileDisplayName').innerText = user.display_name || user.username;
-      document.getElementById('profileUsername').innerText = `@${user.username}`;
-      document.getElementById('profileBio').innerText = user.bio || '自己紹介がまだ記入されていません';
-      document.getElementById('profileFollowingCount').innerText = user.following_count;
-      document.getElementById('profileFollowersCount').innerText = user.followers_count;
+        document.getElementById('profileDisplayName').innerText = user.display_name || user.username;
+        document.getElementById('profileUsername').innerText = `@${user.username}`;
+        document.getElementById('profileBio').innerText = user.bio || '自己紹介がまだ記入されていません';
+        document.getElementById('profileFollowingCount').innerText = user.following_count;
+        document.getElementById('profileFollowersCount').innerText = user.followers_count;
 
-      const avatarEl = document.getElementById('profileAvatar');
-      if (user.avatar_url) {
-        avatarEl.style.backgroundImage = `url('${user.avatar_url}')`;
-        avatarEl.innerText = '';
-      } else {
-        avatarEl.style.backgroundImage = 'none';
-        avatarEl.innerText = (user.display_name || user.username).charAt(0).toUpperCase();
+        const avatarEl = document.getElementById('profileAvatar');
+        if (user.avatar_url) {
+          avatarEl.style.backgroundImage = `url('${user.avatar_url}')`;
+          avatarEl.innerText = '';
+        } else {
+          avatarEl.style.backgroundImage = 'none';
+          avatarEl.innerText = (user.display_name || user.username).charAt(0).toUpperCase();
+        }
+
+        const coverEl = document.getElementById('profileCover');
+        coverEl.style.backgroundImage = user.cover_url ? `url('${user.cover_url}')` : 'none';
+
+        const act = document.getElementById('profileActionContainer');
+        if (currentUser && currentUser.username === user.username) {
+          act.innerHTML = `<button onclick="openEditProfile()" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">EDIT PROFILE</button>`;
+        } else {
+          act.innerHTML = `
+            <button onclick="toggleFollowUser('${user.username}')" class="navy-btn text-[10px] font-bold px-3 py-1 rounded-full">
+              ${user.is_following ? 'フォロー中' : 'フォロー'}
+            </button>
+            <button onclick="openDmChat('${user.username}')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+              <span>✉️</span><span>DM</span>
+            </button>
+          `;
+        }
+
+        document.getElementById('profileModal').classList.remove('hidden');
+      } catch (err) {
+        alert('プロフィール取得時にエラーが発生しました');
       }
-
-      const coverEl = document.getElementById('profileCover');
-      coverEl.style.backgroundImage = user.cover_url ? `url('${user.cover_url}')` : 'none';
-
-      const act = document.getElementById('profileActionContainer');
-      if (currentUser && currentUser.username === user.username) {
-        act.innerHTML = `<button onclick="openEditProfile()" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">EDIT PROFILE</button>`;
-      } else {
-        act.innerHTML = `
-          <button onclick="toggleFollowUser('${user.username}')" class="navy-btn text-[10px] font-bold px-3 py-1 rounded-full">
-            ${user.is_following ? 'フォロー中' : 'フォロー'}
-          </button>
-          <button onclick="openDmChat('${user.username}')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-            <span>✉️</span><span>DM</span>
-          </button>
-        `;
-      }
-
-      document.getElementById('profileModal').classList.remove('hidden');
     };
 
     window.closeProfileModal = function() {
@@ -790,11 +1005,16 @@
 
     window.toggleFollowUser = async function(username) {
       const token = getToken();
+      if (!token) return;
+
       const res = await fetch(`/users/${username}/follow`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.ok) openProfile(username);
+      if (res.ok) {
+        openProfile(username);
+        loadStories();
+      }
     };
 
     window.openEditProfile = function() {
@@ -822,64 +1042,8 @@
         renderAuthUI(currentUser);
         closeEditProfileModal();
         openProfile(currentUser.username);
+        loadStories();
         loadSpots();
-      }
-    });
-
-    window.openDmChat = async function(username) {
-      activeDmPartner = username;
-      closeProfileModal();
-      document.getElementById('dmPartnerTitle').innerText = `@${username} とのDM`;
-      document.getElementById('dmModal').classList.remove('hidden');
-      loadDmMessages();
-    };
-
-    window.closeDmModal = function() {
-      document.getElementById('dmModal').classList.add('hidden');
-      activeDmPartner = null;
-    };
-
-    async function loadDmMessages() {
-      if (!activeDmPartner) return;
-      const token = getToken();
-      const res = await fetch(`/messages/${activeDmPartner}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const msgs = await res.json();
-        const list = document.getElementById('dmMessageList');
-        list.innerHTML = msgs.map(m => {
-          const isMe = m.sender_username === currentUser.username;
-          return `
-            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-              <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
-                ${m.content}
-              </div>
-            </div>
-          `;
-        }).join('');
-        list.scrollTop = list.scrollHeight;
-      }
-    }
-
-    document.getElementById('dmSendForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const input = document.getElementById('dmInput');
-      const content = input.value.trim();
-      if (!content || !activeDmPartner) return;
-
-      const token = getToken();
-      const res = await fetch('/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ recipient_username: activeDmPartner, content })
-      });
-      if (res.ok) {
-        input.value = '';
-        loadDmMessages();
       }
     });
 
@@ -890,7 +1054,7 @@
         method: 'DELETE',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
-      if (res.ok) loadSpots(dateFilterEl.value);
+      if (res.ok) loadSpots();
     };
 
     function initMap() {
@@ -1006,7 +1170,8 @@
           formEl.reset();
           searchSuggestions.classList.add('hidden');
           postModal.classList.add('hidden');
-          loadSpots(dateFilterEl.value);
+          loadStories();
+          loadSpots();
         } else {
           const errData = await res.json();
           alert(errData.detail || 'アップロードに失敗しました');
@@ -1016,10 +1181,7 @@
       }
     });
 
-    dateFilterEl.addEventListener('change', (e) => loadSpots(e.target.value));
-    clearDateEl.addEventListener('click', () => { dateFilterEl.value = ''; loadSpots(); });
-
-    // 初期化
+    // 初期化チェック
     checkAuth();
   </script>
 </body>
