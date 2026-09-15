@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime, timedelta
 from typing import Optional, List
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,11 +26,8 @@ import app.models as models
 def init_and_fix_db():
     try:
         with engine.begin() as conn:
-            # PostGIS 有効化
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
-            
-            # follows テーブルのカラム不整合を自己修復
-            # follows が既に存在し followed_id がない場合は安全に追加
+            # follows テーブルが存在する場合、安全にカラムを追加・修復
             conn.execute(text("""
                 DO $$
                 BEGIN
@@ -42,15 +39,27 @@ def init_and_fix_db():
                             ALTER TABLE follows ADD COLUMN follower_id UUID;
                         END IF;
                     END IF;
+                    -- notifications テーブルの存在確認
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'notifications') THEN
+                        CREATE TABLE notifications (
+                            id UUID PRIMARY KEY,
+                            recipient_id UUID NOT NULL,
+                            sender_id UUID NOT NULL,
+                            type VARCHAR(50) NOT NULL,
+                            message VARCHAR(255) NOT NULL,
+                            is_read BOOLEAN DEFAULT FALSE,
+                            created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc')
+                        );
+                    END IF;
                 END $$;
             """))
-            print("[DB Migration] Table schema checks and repairs complete.")
+            print("[DB Migration] Verified and patched database schema.")
     except Exception as e:
         print(f"[DB Migration Note]: {e}")
 
     try:
         models.Base.metadata.create_all(bind=engine)
-        print("[DB Init] All tables verified/created successfully.")
+        print("[DB Init] All tables verified/created.")
     except Exception as e:
         print(f"[DB Init Error]: {e}")
 
@@ -80,7 +89,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 # -------------------------------------------------------------
 # 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.1.1")
+app = FastAPI(title="Travel Log", version="1.1.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -95,7 +104,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # -------------------------------------------------------------
-# 4. スキーマ
+# 4. 認証ヘルパー（安全なヘッダー解析）
 # -------------------------------------------------------------
 class UserRegister(BaseModel):
     username: str
@@ -111,28 +120,11 @@ class DmCreate(BaseModel):
     recipient_username: str
     content: str
 
-from fastapi.security import OAuth2PasswordBearer
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
-
-def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="認証が必要です")
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if not username:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="無効なトークンです")
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="トークンの検証に失敗しました")
-    
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="ユーザーが存在しません")
-    return user
-
-def get_current_user_maybe(token: Optional[str] = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Optional[models.User]:
-    if not token:
+def get_current_user_maybe(request: Request, db: Session = Depends(get_db)) -> Optional[models.User]:
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
         return None
+    token = auth_header.split(" ")[1]
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -141,6 +133,12 @@ def get_current_user_maybe(token: Optional[str] = Depends(oauth2_scheme), db: Se
     except Exception:
         return None
     return None
+
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> models.User:
+    user = get_current_user_maybe(request, db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="認証が必要です")
+    return user
 
 # -------------------------------------------------------------
 # 5. 認証エンドポイント
@@ -220,7 +218,7 @@ def get_following_stories(db: Session = Depends(get_db), current_user: Optional[
 
     try:
         follows = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id).all()
-        followed_ids = [f.followed_id for f in follows if f.followed_id]
+        followed_ids = [f.followed_id for f in follows if f.followed_id is not None]
         if not followed_ids:
             return []
 
@@ -241,7 +239,7 @@ def get_following_stories(db: Session = Depends(get_db), current_user: Optional[
         return []
 
 # -------------------------------------------------------------
-# 7. スポット（旅ログ）投稿 & フィード
+# 7. スポット（旅ログ）
 # -------------------------------------------------------------
 @app.get("/spots")
 def get_spots(
@@ -261,7 +259,7 @@ def get_spots(
                 return []
         elif feed_type == "following" and current_user:
             follows = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id).all()
-            followed_ids = [f.followed_id for f in follows if f.followed_id]
+            followed_ids = [f.followed_id for f in follows if f.followed_id is not None]
             if not followed_ids:
                 return []
             query = query.filter(models.Spot.user_id.in_(followed_ids))
@@ -355,12 +353,12 @@ def create_spot(
         db.commit()
         db.refresh(spot)
 
-        # 通知の安全な作成（フォロワー通知）
         if current_user:
             try:
                 followers = db.query(models.Follow).filter(models.Follow.followed_id == current_user.id).all()
                 for f in followers:
                     notif = models.Notification(
+                        id=uuid.uuid4(),
                         recipient_id=f.follower_id,
                         sender_id=current_user.id,
                         type="new_post",
@@ -414,7 +412,7 @@ def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: model
     return {"status": "deleted"}
 
 # -------------------------------------------------------------
-# 8. プロフィール & フォロー
+# 8. プロフィール & フォロー（完全堅牢化）
 # -------------------------------------------------------------
 @app.get("/users/search")
 def search_users(q: str = Query(""), db: Session = Depends(get_db)):
@@ -455,13 +453,13 @@ def get_profile(username: str, db: Session = Depends(get_db), current_user: Opti
                     models.Follow.followed_id == target.id
                 ).first() is not None
         except Exception as fe:
-            print(f"[Follow count note]: {fe}")
+            print(f"[Profile Follow Count Note]: {fe}")
 
         return {
             "id": str(target.id),
             "username": target.username,
-            "display_name": target.display_name,
-            "bio": target.bio,
+            "display_name": target.display_name or target.username,
+            "bio": target.bio or "旅の記録をはじめました。",
             "avatar_url": target.avatar_url,
             "cover_url": target.cover_url,
             "following_count": following_count,
@@ -495,6 +493,7 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: mo
         db.add(models.Follow(follower_id=current_user.id, followed_id=target.id))
         try:
             notif = models.Notification(
+                id=uuid.uuid4(),
                 recipient_id=target.id,
                 sender_id=current_user.id,
                 type="follow",
