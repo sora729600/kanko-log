@@ -64,7 +64,7 @@ def init_and_fix_db():
                     END IF;
                 END $$;
             """))
-            print("[DB Migration] Verified and patched database schema with privacy and request status.")
+            print("[DB Migration] Schema patched successfully.")
     except Exception as e:
         print(f"[DB Migration Note]: {e}")
 
@@ -100,7 +100,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 # -------------------------------------------------------------
 # 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.2.0")
+app = FastAPI(title="Travel Log", version="1.2.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -147,8 +147,9 @@ def get_current_user_maybe(request: Request, db: Session = Depends(get_db)) -> O
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username:
+            clean = username.strip()
             return db.query(models.User).filter(
-                or_(models.User.username == username, models.User.username.ilike(username))
+                or_(models.User.username == clean, models.User.username.ilike(clean))
             ).first()
     except Exception:
         return None
@@ -173,6 +174,7 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="そのユーザーIDは既に使用されています")
     
     new_user = models.User(
+        id=uuid.uuid4(),
         username=clean_username,
         display_name=user_in.display_name.strip() if user_in.display_name else clean_username,
         email=user_in.email.strip() if user_in.email else None,
@@ -219,7 +221,7 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
             "bio": user.bio,
             "avatar_url": user.avatar_url,
             "cover_url": user.cover_url,
-            "is_private": user.is_private
+            "is_private": user.is_private or False
         }
     }
 
@@ -237,7 +239,7 @@ def get_me(current_user: models.User = Depends(get_current_user)):
     }
 
 # -------------------------------------------------------------
-# 6. ストーリーバー（承認済みフォロー中ユーザー）
+# 6. ストーリーバー（フォロー中ユーザー）
 # -------------------------------------------------------------
 @app.get("/users/following/stories")
 def get_following_stories(db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
@@ -378,6 +380,7 @@ def create_spot(
                 pass
 
         spot = models.Spot(
+            id=uuid.uuid4(),
             name=name.strip(),
             memo=memo.strip() if memo else None,
             media_url=media_url,
@@ -428,7 +431,7 @@ def toggle_spot_like(spot_id: str, db: Session = Depends(get_db), current_user: 
         db.commit()
         liked = False
     else:
-        db.add(models.Like(spot_id=spot_uuid, user_id=current_user.id))
+        db.add(models.Like(id=uuid.uuid4(), spot_id=spot_uuid, user_id=current_user.id))
         db.commit()
         liked = True
 
@@ -452,7 +455,7 @@ def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: model
     return {"status": "deleted"}
 
 # -------------------------------------------------------------
-# 8. プロフィール & 鍵垢 & フォロー・申請
+# 8. プロフィール & フォロー（修正完了）
 # -------------------------------------------------------------
 @app.get("/users/search")
 def search_users(q: str = Query(""), db: Session = Depends(get_db)):
@@ -484,7 +487,7 @@ def get_profile(username: str, db: Session = Depends(get_db), current_user: Opti
         
         following_count = 0
         followers_count = 0
-        follow_status = "none"  # 'none' | 'following' | 'pending'
+        follow_status = "none"
 
         try:
             following_count = db.query(models.Follow).filter(
@@ -526,54 +529,68 @@ def get_profile(username: str, db: Session = Depends(get_db), current_user: Opti
 
 @app.post("/users/{username}/follow")
 def toggle_follow(username: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    clean_user = username.strip()
-    target = db.query(models.User).filter(
-        or_(models.User.username == clean_user, models.User.username.ilike(clean_user))
-    ).first()
-    if not target:
-        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
-    if target.id == current_user.id:
-        raise HTTPException(status_code=400, detail="自分自身はフォローできません")
-    
-    rel = db.query(models.Follow).filter(
-        models.Follow.follower_id == current_user.id,
-        models.Follow.followed_id == target.id
-    ).first()
-    
-    if rel:
-        # すでにフォロー中または申請中なら解除
-        db.delete(rel)
-        db.commit()
-        return {"follow_status": "none"}
-    else:
-        # 鍵垢なら申請中(pending)、公開アカウントなら即時承認(accepted)
-        if target.is_private:
-            new_rel = models.Follow(follower_id=current_user.id, followed_id=target.id, status="pending")
-            notif_msg = f"@{current_user.username} さんからフォロー申請が届きました！"
-            notif_type = "follow_request"
-            result_status = "pending"
+    try:
+        clean_user = username.strip()
+        target = db.query(models.User).filter(
+            or_(models.User.username == clean_user, models.User.username.ilike(clean_user))
+        ).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+        if target.id == current_user.id:
+            raise HTTPException(status_code=400, detail="自分自身はフォローできません")
+        
+        rel = db.query(models.Follow).filter(
+            models.Follow.follower_id == current_user.id,
+            models.Follow.followed_id == target.id
+        ).first()
+        
+        if rel:
+            db.delete(rel)
+            db.commit()
+            return {"follow_status": "none"}
         else:
-            new_rel = models.Follow(follower_id=current_user.id, followed_id=target.id, status="accepted")
-            notif_msg = f"@{current_user.username} さんにフォローされました！"
-            notif_type = "follow"
-            result_status = "following"
+            if target.is_private:
+                new_rel = models.Follow(
+                    id=uuid.uuid4(),
+                    follower_id=current_user.id,
+                    followed_id=target.id,
+                    status="pending"
+                )
+                notif_msg = f"@{current_user.username} さんからフォロー申請が届きました！"
+                notif_type = "follow_request"
+                result_status = "pending"
+            else:
+                new_rel = models.Follow(
+                    id=uuid.uuid4(),
+                    follower_id=current_user.id,
+                    followed_id=target.id,
+                    status="accepted"
+                )
+                notif_msg = f"@{current_user.username} さんにフォローされました！"
+                notif_type = "follow"
+                result_status = "following"
 
-        db.add(new_rel)
-        try:
-            notif = models.Notification(
-                id=uuid.uuid4(),
-                recipient_id=target.id,
-                sender_id=current_user.id,
-                type=notif_type,
-                message=notif_msg
-            )
-            db.add(notif)
-        except Exception:
-            pass
-        db.commit()
-        return {"follow_status": result_status}
+            db.add(new_rel)
+            try:
+                notif = models.Notification(
+                    id=uuid.uuid4(),
+                    recipient_id=target.id,
+                    sender_id=current_user.id,
+                    type=notif_type,
+                    message=notif_msg
+                )
+                db.add(notif)
+            except Exception as ne:
+                print(f"[Follow Notif Note]: {ne}")
 
-# 申請中のアカウント一覧（自分が相手に申請して保留中のもの）
+            db.commit()
+            return {"follow_status": result_status}
+    except Exception as e:
+        db.rollback()
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"フォロー処理に失敗しました: {str(e)}")
+
+# 申請中（自分が送信した保留中の申請一覧）
 @app.get("/friends/outgoing-requests")
 def get_outgoing_requests(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     reqs = db.query(models.Follow).filter(
@@ -589,7 +606,7 @@ def get_outgoing_requests(db: Session = Depends(get_db), current_user: models.Us
         "avatar_url": u.avatar_url
     } for u in users]
 
-# 承認待ち一覧（鍵垢の自分宛に届いている申請）
+# 承認待ち（自分宛に届いた保留中の申請一覧）
 @app.get("/friends/incoming-requests")
 def get_incoming_requests(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     reqs = db.query(models.Follow).filter(
@@ -605,11 +622,12 @@ def get_incoming_requests(db: Session = Depends(get_db), current_user: models.Us
         "avatar_url": u.avatar_url
     } for u in users]
 
-# 申請の承認 or 拒否
+# 申請の承認・拒否
 @app.post("/friends/decision")
 def handle_follow_decision(payload: FollowDecision, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    clean_target = payload.target_username.strip()
     sender = db.query(models.User).filter(
-        or_(models.User.username == payload.target_username, models.User.username.ilike(payload.target_username))
+        or_(models.User.username == clean_target, models.User.username.ilike(clean_target))
     ).first()
     if not sender:
         raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
@@ -625,15 +643,17 @@ def handle_follow_decision(payload: FollowDecision, db: Session = Depends(get_db
 
     if payload.action == "accept":
         rel.status = "accepted"
-        # 承認通知
-        notif = models.Notification(
-            id=uuid.uuid4(),
-            recipient_id=sender.id,
-            sender_id=current_user.id,
-            type="follow_accepted",
-            message=f"@{current_user.username} さんへのフォロー申請が承認されました！"
-        )
-        db.add(notif)
+        try:
+            notif = models.Notification(
+                id=uuid.uuid4(),
+                recipient_id=sender.id,
+                sender_id=current_user.id,
+                type="follow_accepted",
+                message=f"@{current_user.username} さんへのフォロー申請が承認されました！"
+            )
+            db.add(notif)
+        except Exception:
+            pass
         db.commit()
         return {"status": "accepted"}
     else:
@@ -641,7 +661,7 @@ def handle_follow_decision(payload: FollowDecision, db: Session = Depends(get_db
         db.commit()
         return {"status": "declined"}
 
-# 鍵アカウント設定の更新
+# 鍵アカウント設定
 @app.post("/users/privacy")
 def update_privacy(payload: PrivacyUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     current_user.is_private = payload.is_private
@@ -785,6 +805,7 @@ def send_message(payload: DmCreate, db: Session = Depends(get_db), current_user:
         raise HTTPException(status_code=404, detail="送信先ユーザーが見つかりません")
 
     msg = models.Message(
+        id=uuid.uuid4(),
         sender_id=current_user.id,
         recipient_id=recipient.id,
         content=payload.content.strip()
