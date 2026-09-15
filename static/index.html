@@ -59,7 +59,6 @@
     .leaflet-tile {
       filter: contrast(1.05) saturate(0.85);
     }
-    /* パスポート／エディトリアル風のアクセント */
     .passport-badge {
       border: 1px dashed #0f172a;
       letter-spacing: 0.15em;
@@ -178,7 +177,7 @@
         <div id="authStatusContainer"></div>
 
         <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm">
-          <span>+</span>
+          <span>+ ADD</span>
         </button>
       </div>
     </header>
@@ -283,13 +282,9 @@
       </div>
     </div>
 
-    <!-- ======================================================== -->
-    <!-- 3. オリジナル・エディトリアル風 プロフィールモーダル     -->
-    <!-- ======================================================== -->
+    <!-- 3. プロフィールモーダル -->
     <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden">
-        
-        <!-- ヘッダーライン & 閉じるボタン -->
         <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-900">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 bg-slate-900"></span>
@@ -298,35 +293,27 @@
           <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
         </div>
 
-        <!-- 独自性のあるオフセット・カードレイアウト -->
         <div class="space-y-4">
-          <!-- カバー写真（額縁風のスクエアカード） -->
           <div id="profileCover" class="w-full h-28 border border-slate-900 rounded-xl bg-slate-100 bg-cover bg-center relative shadow-sm">
             <div class="absolute bottom-2 left-2 passport-badge bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[9px] font-bold text-slate-800">
               PASSPORT ARCHIVE
             </div>
           </div>
 
-          <!-- アイコン & 基本情報 -->
           <div class="flex items-start gap-3.5">
-            <!-- 四角いソリッドなアイコンフレーム -->
             <div id="profileAvatar" class="w-16 h-16 rounded-xl border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
             
             <div class="flex-1 min-w-0">
               <h2 id="profileDisplayName" class="text-base font-extrabold text-slate-900 leading-tight truncate"></h2>
               <p id="profileUsername" class="text-[11px] text-slate-400 font-mono mt-0.5"></p>
-              
-              <!-- アクションボタン（フォロー / 編集 / DM） -->
               <div id="profileActionContainer" class="mt-2 flex gap-1.5"></div>
             </div>
           </div>
 
-          <!-- 自己紹介文（エディトリアル風の引用枠） -->
           <div class="bg-slate-50 border-l-2 border-slate-900 p-3 rounded-r-xl">
             <p id="profileBio" class="text-xs text-slate-700 leading-relaxed font-normal"></p>
           </div>
 
-          <!-- スタッツカウンター（パスポートスタンプ風） -->
           <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
             <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Following</span>
@@ -425,7 +412,6 @@
     function setToken(t) { localStorage.setItem('access_token', t); }
     function removeToken() { localStorage.removeItem('access_token'); }
 
-    // --- 画面表示の切り替え（ログイン中: AppView, 未ログイン: LandingView） ---
     function updateViewState(isLoggedIn) {
       if (isLoggedIn) {
         landingView.classList.add('hidden');
@@ -436,7 +422,6 @@
       }
     }
 
-    // --- 認証ステータス確認 ---
     async function checkAuth() {
       const token = getToken();
       if (!token) {
@@ -487,7 +472,6 @@
       updateViewState(false);
     };
 
-    // --- ゲート画面の認証制御（ログイン / 新規登録） ---
     let isGateRegisterMode = false;
     const gateToggleBtn = document.getElementById('gateToggleBtn');
     const gateTitle = document.getElementById('gateTitle');
@@ -547,7 +531,6 @@
       }
     });
 
-    // --- ユーザーID検索モーダル ---
     window.openUserSearchModal = function() {
       document.getElementById('userSearchModal').classList.remove('hidden');
       document.getElementById('userSearchInput').focus();
@@ -597,7 +580,6 @@
       }
     });
 
-    // --- DM会話一覧モーダル ---
     window.openConversationsModal = async function() {
       const token = getToken();
       const res = await fetch('/messages/conversations', {
@@ -632,7 +614,6 @@
       document.getElementById('conversationsModal').classList.add('hidden');
     };
 
-    // --- フィード切り替え ---
     window.switchFeedTab = function(tab) {
       currentFeedTab = tab;
       const tabAll = document.getElementById('tabAll');
@@ -648,83 +629,97 @@
       loadSpots(dateFilterEl.value);
     };
 
-    // --- フィード取得 ---
     async function loadSpots(date = '') {
       feedEl.innerHTML = '<p class="text-center text-xs text-slate-400 py-12 tracking-widest uppercase font-medium">Loading...</p>';
       const token = getToken();
       let url = `/spots?feed_type=${currentFeedTab}`;
       if (date) url += `&target_date=${date}`;
 
-      const res = await fetch(url, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
-      const spots = await res.json();
+      try {
+        const res = await fetch(url, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+        if (!res.ok) {
+          feedEl.innerHTML = `
+            <div class="text-center py-16 border border-dashed border-rose-300 rounded-2xl bg-white/50">
+              <p class="text-xs text-rose-500 tracking-wider font-semibold">データの読み込みに失敗しました (${res.status})</p>
+            </div>
+          `;
+          return;
+        }
+        const spots = await res.json();
 
-      if (spots.length === 0) {
+        if (!Array.isArray(spots) || spots.length === 0) {
+          feedEl.innerHTML = `
+            <div class="text-center py-16 border border-dashed border-slate-300 rounded-2xl bg-white/50">
+              <p class="text-xs text-slate-400 tracking-[0.2em] font-semibold uppercase">No Logs Archived</p>
+            </div>
+          `;
+          return;
+        }
+
+        feedEl.innerHTML = spots.map(s => {
+          const visitDate = new Date(s.visited_at);
+          const dateText = `${visitDate.getFullYear()}.${String(visitDate.getMonth() + 1).padStart(2, '0')}.${String(visitDate.getDate()).padStart(2, '0')}`;
+          const timeText = visitDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          const avatarBg = s.author_avatar_url ? `style="background-image: url('${s.author_avatar_url}')"` : '';
+
+          return `
+            <article class="navy-card rounded-2xl overflow-hidden">
+              <div class="px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-white">
+                <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${s.username}')">
+                  <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
+                    ${!s.author_avatar_url ? (s.display_name || s.username).charAt(0).toUpperCase() : ''}
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs font-bold text-slate-900 leading-none">${s.display_name || s.username}</span>
+                      <span class="text-[10px] text-slate-400 font-mono">@${s.username}</span>
+                    </div>
+                    <h2 class="font-bold text-xs text-slate-800 tracking-wide mt-1">${s.name}</h2>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <a href="${s.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 font-mono">
+                    <span>MAP</span><span>↗</span>
+                  </a>
+                  ${currentUser && currentUser.username === s.username ? `
+                    <button onclick="deleteSpot('${s.id}')" class="text-slate-300 hover:text-rose-600 p-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+
+              ${s.media_url ? (
+                s.media_type === 'video' 
+                  ? `<video src="${s.media_url}" controls class="w-full max-h-[440px] object-cover bg-black"></video>`
+                  : `<img src="${s.media_url}" class="w-full max-h-[440px] object-cover border-b border-slate-100" />`
+              ) : ''}
+
+              <div class="p-4 bg-white">
+                <div class="flex items-center justify-between mb-2">
+                  <button onclick="toggleSpotLike('${s.id}', this)" class="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-950">
+                    <svg class="w-4 h-4 heart-icon transition-colors ${s.is_liked ? 'text-rose-500 fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <span class="like-count font-mono font-bold text-xs">${s.likes_count}</span>
+                  </button>
+                  <span class="text-[10px] text-slate-400 font-mono">${dateText} ${timeText}</span>
+                </div>
+                ${s.memo ? `<p class="text-xs text-slate-600 leading-relaxed">${s.memo}</p>` : ''}
+              </div>
+            </article>
+          `;
+        }).join('');
+      } catch (err) {
         feedEl.innerHTML = `
-          <div class="text-center py-16 border border-dashed border-slate-300 rounded-2xl bg-white/50">
-            <p class="text-xs text-slate-400 tracking-[0.2em] font-semibold uppercase">No Logs Archived</p>
+          <div class="text-center py-16 border border-dashed border-rose-300 rounded-2xl bg-white/50">
+            <p class="text-xs text-rose-500 tracking-wider font-semibold">ネットワーク接続に失敗しました</p>
           </div>
         `;
-        return;
       }
-
-      feedEl.innerHTML = spots.map(s => {
-        const visitDate = new Date(s.visited_at);
-        const dateText = `${visitDate.getFullYear()}.${String(visitDate.getMonth() + 1).padStart(2, '0')}.${String(visitDate.getDate()).padStart(2, '0')}`;
-        const timeText = visitDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        const avatarBg = s.author_avatar_url ? `style="background-image: url('${s.author_avatar_url}')"` : '';
-
-        return `
-          <article class="navy-card rounded-2xl overflow-hidden">
-            <div class="px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-white">
-              <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${s.username}')">
-                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
-                  ${!s.author_avatar_url ? (s.display_name || s.username).charAt(0).toUpperCase() : ''}
-                </div>
-                <div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-xs font-bold text-slate-900 leading-none">${s.display_name || s.username}</span>
-                    <span class="text-[10px] text-slate-400 font-mono">@${s.username}</span>
-                  </div>
-                  <h2 class="font-bold text-xs text-slate-800 tracking-wide mt-1">${s.name}</h2>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <a href="${s.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 font-mono">
-                  <span>MAP</span><span>↗</span>
-                </a>
-                ${currentUser && currentUser.username === s.username ? `
-                  <button onclick="deleteSpot('${s.id}')" class="text-slate-300 hover:text-rose-600 p-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-
-            ${s.media_url ? (
-              s.media_type === 'video' 
-                ? `<video src="${s.media_url}" controls class="w-full max-h-[440px] object-cover bg-black"></video>`
-                : `<img src="${s.media_url}" class="w-full max-h-[440px] object-cover border-b border-slate-100" />`
-            ) : ''}
-
-            <div class="p-4 bg-white">
-              <div class="flex items-center justify-between mb-2">
-                <button onclick="toggleSpotLike('${s.id}', this)" class="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-950">
-                  <svg class="w-4 h-4 heart-icon transition-colors ${s.is_liked ? 'text-rose-500 fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  <span class="like-count font-mono font-bold text-xs">${s.likes_count}</span>
-                </button>
-                <span class="text-[10px] text-slate-400 font-mono">${dateText} ${timeText}</span>
-              </div>
-              ${s.memo ? `<p class="text-xs text-slate-600 leading-relaxed">${s.memo}</p>` : ''}
-            </div>
-          </article>
-        `;
-      }).join('');
     }
 
-    // --- いいね処理 ---
     window.toggleSpotLike = async function(spotId, btn) {
       const token = getToken();
       if (!token) return;
@@ -746,7 +741,6 @@
       }
     };
 
-    // --- 独自デザインのプロフィール表示 ---
     window.openProfile = async function(username) {
       const token = getToken();
       const res = await fetch(`/users/${username}`, {
@@ -803,7 +797,6 @@
       if (res.ok) openProfile(username);
     };
 
-    // --- プロフィール編集 ---
     window.openEditProfile = function() {
       closeProfileModal();
       document.getElementById('editDisplayName').value = currentUser.display_name || '';
@@ -833,7 +826,6 @@
       }
     });
 
-    // --- DM（チャット） ---
     window.openDmChat = async function(username) {
       activeDmPartner = username;
       closeProfileModal();
@@ -891,7 +883,6 @@
       }
     });
 
-    // --- 投稿削除 ---
     window.deleteSpot = async function(spotId) {
       if (!confirm('この思い出を削除しますか？')) return;
       const token = getToken();
@@ -902,7 +893,6 @@
       if (res.ok) loadSpots(dateFilterEl.value);
     };
 
-    // --- 投稿 & 地図 ---
     function initMap() {
       map = L.map('pickerMap', { zoomControl: false }).setView([37.5665, 126.9780], 14);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -942,7 +932,6 @@
     }
     document.getElementById('cancelModalBtn').addEventListener('click', closePostModal);
 
-    // --- 場所検索 ---
     const searchLocationInput = document.getElementById('searchLocationInput');
     const searchLocationBtn = document.getElementById('searchLocationBtn');
     const searchSuggestions = document.getElementById('searchSuggestions');
@@ -1007,21 +996,30 @@
       e.preventDefault();
       const token = getToken();
       const formData = new FormData(formEl);
-      await fetch('/spots/upload', {
-        method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        body: formData
-      });
-      formEl.reset();
-      searchSuggestions.classList.add('hidden');
-      postModal.classList.add('hidden');
-      loadSpots(dateFilterEl.value);
+      try {
+        const res = await fetch('/spots/upload', {
+          method: 'POST',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          body: formData
+        });
+        if (res.ok) {
+          formEl.reset();
+          searchSuggestions.classList.add('hidden');
+          postModal.classList.add('hidden');
+          loadSpots(dateFilterEl.value);
+        } else {
+          const errData = await res.json();
+          alert(errData.detail || 'アップロードに失敗しました');
+        }
+      } catch (err) {
+        alert('アップロード処理中にエラーが発生しました');
+      }
     });
 
     dateFilterEl.addEventListener('change', (e) => loadSpots(e.target.value));
     clearDateEl.addEventListener('click', () => { dateFilterEl.value = ''; loadSpots(); });
 
-    // 初期化チェック
+    // 初期化
     checkAuth();
   </script>
 </body>

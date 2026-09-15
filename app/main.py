@@ -150,7 +150,7 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
-            "id": new_user.id,
+            "id": str(new_user.id),
             "username": new_user.username,
             "display_name": new_user.display_name,
             "bio": new_user.bio,
@@ -171,7 +171,7 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
-            "id": user.id,
+            "id": str(user.id),
             "username": user.username,
             "display_name": user.display_name,
             "bio": user.bio,
@@ -183,7 +183,7 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
 @app.get("/auth/me")
 def get_me(current_user: models.User = Depends(get_current_user)):
     return {
-        "id": current_user.id,
+        "id": str(current_user.id),
         "username": current_user.username,
         "display_name": current_user.display_name,
         "email": current_user.email,
@@ -238,7 +238,7 @@ def get_spots(
 
             author = s.author
             result.append({
-                "id": s.id,
+                "id": str(s.id),
                 "name": s.name,
                 "memo": s.memo,
                 "media_url": s.media_url,
@@ -247,7 +247,7 @@ def get_spots(
                 "latitude": lat,
                 "longitude": lng,
                 "google_map_url": f"https://www.google.com/maps/search/?api=1&query={lat},{lng}",
-                "user_id": s.user_id,
+                "user_id": str(s.user_id) if s.user_id else None,
                 "username": author.username if author else "anonymous",
                 "display_name": author.display_name if author else "Traveler",
                 "author_avatar_url": author.avatar_url if author else None,
@@ -302,30 +302,40 @@ def create_spot(
         db.add(spot)
         db.commit()
         db.refresh(spot)
-        return {"status": "success", "id": spot.id}
+        return {"status": "success", "id": str(spot.id)}
     except Exception as e:
         db.rollback()
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to upload spot: {str(e)}")
 
 @app.post("/spots/{spot_id}/like")
-def toggle_spot_like(spot_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    like = db.query(models.Like).filter(models.Like.spot_id == spot_id, models.Like.user_id == current_user.id).first()
+def toggle_spot_like(spot_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    try:
+        spot_uuid = uuid.UUID(spot_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無効なスポットIDです")
+
+    like = db.query(models.Like).filter(models.Like.spot_id == spot_uuid, models.Like.user_id == current_user.id).first()
     if like:
         db.delete(like)
         db.commit()
         liked = False
     else:
-        db.add(models.Like(spot_id=spot_id, user_id=current_user.id))
+        db.add(models.Like(spot_id=spot_uuid, user_id=current_user.id))
         db.commit()
         liked = True
 
-    count = db.query(models.Like).filter(models.Like.spot_id == spot_id).count()
+    count = db.query(models.Like).filter(models.Like.spot_id == spot_uuid).count()
     return {"liked": liked, "likes_count": count}
 
 @app.delete("/spots/{spot_id}")
-def delete_spot(spot_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    spot = db.query(models.Spot).filter(models.Spot.id == spot_id).first()
+def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    try:
+        spot_uuid = uuid.UUID(spot_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無効なスポットIDです")
+
+    spot = db.query(models.Spot).filter(models.Spot.id == spot_uuid).first()
     if not spot:
         raise HTTPException(status_code=404, detail="スポットが見つかりません")
     if spot.user_id != current_user.id:
@@ -349,7 +359,7 @@ def search_users(q: str = Query(""), db: Session = Depends(get_db)):
         )
     ).limit(10).all()
     return [{
-        "id": u.id,
+        "id": str(u.id),
         "username": u.username,
         "display_name": u.display_name,
         "avatar_url": u.avatar_url
@@ -372,7 +382,7 @@ def get_profile(username: str, db: Session = Depends(get_db), current_user: Opti
         ).first() is not None
 
     return {
-        "id": target.id,
+        "id": str(target.id),
         "username": target.username,
         "display_name": target.display_name,
         "bio": target.bio,
@@ -438,7 +448,7 @@ def update_profile(
     db.commit()
     db.refresh(current_user)
     return {
-        "id": current_user.id,
+        "id": str(current_user.id),
         "username": current_user.username,
         "display_name": current_user.display_name,
         "bio": current_user.bio,
@@ -463,7 +473,7 @@ def get_conversations(db: Session = Depends(get_db), current_user: models.User =
 
     users = db.query(models.User).filter(models.User.id.in_(partner_ids)).all()
     return [{
-        "id": u.id,
+        "id": str(u.id),
         "username": u.username,
         "display_name": u.display_name,
         "avatar_url": u.avatar_url
@@ -483,7 +493,7 @@ def get_messages(partner_username: str, db: Session = Depends(get_db), current_u
     ).order_by(models.Message.created_at.asc()).all()
 
     return [{
-        "id": m.id,
+        "id": str(m.id),
         "sender_username": current_user.username if m.sender_id == current_user.id else partner.username,
         "content": m.content,
         "created_at": m.created_at.isoformat()
@@ -503,7 +513,7 @@ def send_message(payload: DmCreate, db: Session = Depends(get_db), current_user:
     db.add(msg)
     db.commit()
     db.refresh(msg)
-    return {"status": "sent", "id": msg.id}
+    return {"status": "sent", "id": str(msg.id)}
 
 # -------------------------------------------------------------
 # 9. トップページ (index.html)
