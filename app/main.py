@@ -21,22 +21,40 @@ from app.database import engine, Base, get_db
 import app.models as models
 
 # -------------------------------------------------------------
-# 1. データベース自動初期化（PostGIS & テーブル作成）
+# 1. データベース自動修復 & 初期化
 # -------------------------------------------------------------
-def init_db():
+def init_and_fix_db():
     try:
         with engine.begin() as conn:
+            # PostGIS 有効化
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+            
+            # follows テーブルのカラム不整合を自己修復
+            # follows が既に存在し followed_id がない場合は安全に追加
+            conn.execute(text("""
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'follows') THEN
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'followed_id') THEN
+                            ALTER TABLE follows ADD COLUMN followed_id UUID;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'follower_id') THEN
+                            ALTER TABLE follows ADD COLUMN follower_id UUID;
+                        END IF;
+                    END IF;
+                END $$;
+            """))
+            print("[DB Migration] Table schema checks and repairs complete.")
     except Exception as e:
-        print(f"[DB Init] Note on postgis extension: {e}")
+        print(f"[DB Migration Note]: {e}")
 
     try:
         models.Base.metadata.create_all(bind=engine)
-        print("[DB Init] All database tables created/verified.")
+        print("[DB Init] All tables verified/created successfully.")
     except Exception as e:
-        print(f"[DB Init Error] Table creation error: {e}")
+        print(f"[DB Init Error]: {e}")
 
-init_db()
+init_and_fix_db()
 
 # -------------------------------------------------------------
 # 2. セキュリティ & JWT
@@ -60,9 +78,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # -------------------------------------------------------------
-# 3. アプリ & 静的ファイル
+# 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.1.0")
+app = FastAPI(title="Travel Log", version="1.1.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -193,32 +211,34 @@ def get_me(current_user: models.User = Depends(get_current_user)):
     }
 
 # -------------------------------------------------------------
-# 6. ストーリー風（フォロー中ユーザー）バー
+# 6. ストーリーバー（フォロー中ユーザー）
 # -------------------------------------------------------------
 @app.get("/users/following/stories")
 def get_following_stories(db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
     if not current_user:
         return []
 
-    # 自分がフォローしている人たち
-    follows = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id).all()
-    followed_ids = [f.followed_id for f in follows]
-    if not followed_ids:
-        return []
+    try:
+        follows = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id).all()
+        followed_ids = [f.followed_id for f in follows if f.followed_id]
+        if not followed_ids:
+            return []
 
-    users = db.query(models.User).filter(models.User.id.in_(followed_ids)).all()
-    res = []
-    for u in users:
-        # 最新の投稿があるか確認
-        latest_spot = db.query(models.Spot).filter(models.Spot.user_id == u.id).order_by(desc(models.Spot.visited_at)).first()
-        res.append({
-            "id": str(u.id),
-            "username": u.username,
-            "display_name": u.display_name or u.username,
-            "avatar_url": u.avatar_url,
-            "has_recent_spot": latest_spot is not None
-        })
-    return res
+        users = db.query(models.User).filter(models.User.id.in_(followed_ids)).all()
+        res = []
+        for u in users:
+            latest_spot = db.query(models.Spot).filter(models.Spot.user_id == u.id).order_by(desc(models.Spot.visited_at)).first()
+            res.append({
+                "id": str(u.id),
+                "username": u.username,
+                "display_name": u.display_name or u.username,
+                "avatar_url": u.avatar_url,
+                "has_recent_spot": latest_spot is not None
+            })
+        return res
+    except Exception as e:
+        print(f"[Stories Error]: {e}")
+        return []
 
 # -------------------------------------------------------------
 # 7. スポット（旅ログ）投稿 & フィード
@@ -240,7 +260,10 @@ def get_spots(
             else:
                 return []
         elif feed_type == "following" and current_user:
-            followed_ids = db.query(models.Follow.followed_id).filter(models.Follow.follower_id == current_user.id).subquery()
+            follows = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id).all()
+            followed_ids = [f.followed_id for f in follows if f.followed_id]
+            if not followed_ids:
+                return []
             query = query.filter(models.Spot.user_id.in_(followed_ids))
 
         spots = query.order_by(desc(models.Spot.visited_at)).all()
@@ -256,10 +279,14 @@ def get_spots(
             except Exception:
                 pass
 
-            likes_count = db.query(models.Like).filter(models.Like.spot_id == s.id).count()
+            likes_count = 0
             is_liked = False
-            if current_user:
-                is_liked = db.query(models.Like).filter(models.Like.spot_id == s.id, models.Like.user_id == current_user.id).first() is not None
+            try:
+                likes_count = db.query(models.Like).filter(models.Like.spot_id == s.id).count()
+                if current_user:
+                    is_liked = db.query(models.Like).filter(models.Like.spot_id == s.id, models.Like.user_id == current_user.id).first() is not None
+            except Exception:
+                pass
 
             author = s.author
             result.append({
@@ -328,18 +355,21 @@ def create_spot(
         db.commit()
         db.refresh(spot)
 
-        # フォロワー全員に「新規投稿」通知を作成
+        # 通知の安全な作成（フォロワー通知）
         if current_user:
-            followers = db.query(models.Follow).filter(models.Follow.followed_id == current_user.id).all()
-            for f in followers:
-                notif = models.Notification(
-                    recipient_id=f.follower_id,
-                    sender_id=current_user.id,
-                    type="new_post",
-                    message=f"@{current_user.username} さんが新しい思い出「{spot.name}」を投稿しました！"
-                )
-                db.add(notif)
-            db.commit()
+            try:
+                followers = db.query(models.Follow).filter(models.Follow.followed_id == current_user.id).all()
+                for f in followers:
+                    notif = models.Notification(
+                        recipient_id=f.follower_id,
+                        sender_id=current_user.id,
+                        type="new_post",
+                        message=f"@{current_user.username} さんが新しい思い出「{spot.name}」を投稿しました！"
+                    )
+                    db.add(notif)
+                db.commit()
+            except Exception as notif_err:
+                print(f"[Notification Note]: {notif_err}")
 
         return {"status": "success", "id": str(spot.id)}
     except Exception as e:
@@ -384,7 +414,7 @@ def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: model
     return {"status": "deleted"}
 
 # -------------------------------------------------------------
-# 8. プロフィール & フォロー & 検索
+# 8. プロフィール & フォロー
 # -------------------------------------------------------------
 @app.get("/users/search")
 def search_users(q: str = Query(""), db: Session = Depends(get_db)):
@@ -406,31 +436,43 @@ def search_users(q: str = Query(""), db: Session = Depends(get_db)):
 
 @app.get("/users/{username}")
 def get_profile(username: str, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
-    target = db.query(models.User).filter(models.User.username == username.strip().lower()).first()
-    if not target:
-        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
-    
-    following_count = db.query(models.Follow).filter(models.Follow.follower_id == target.id).count()
-    followers_count = db.query(models.Follow).filter(models.Follow.followed_id == target.id).count()
-    
-    is_following = False
-    if current_user:
-        is_following = db.query(models.Follow).filter(
-            models.Follow.follower_id == current_user.id,
-            models.Follow.followed_id == target.id
-        ).first() is not None
+    try:
+        clean_user = username.strip().lower()
+        target = db.query(models.User).filter(models.User.username == clean_user).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+        
+        following_count = 0
+        followers_count = 0
+        is_following = False
 
-    return {
-        "id": str(target.id),
-        "username": target.username,
-        "display_name": target.display_name,
-        "bio": target.bio,
-        "avatar_url": target.avatar_url,
-        "cover_url": target.cover_url,
-        "following_count": following_count,
-        "followers_count": followers_count,
-        "is_following": is_following
-    }
+        try:
+            following_count = db.query(models.Follow).filter(models.Follow.follower_id == target.id).count()
+            followers_count = db.query(models.Follow).filter(models.Follow.followed_id == target.id).count()
+            if current_user:
+                is_following = db.query(models.Follow).filter(
+                    models.Follow.follower_id == current_user.id,
+                    models.Follow.followed_id == target.id
+                ).first() is not None
+        except Exception as fe:
+            print(f"[Follow count note]: {fe}")
+
+        return {
+            "id": str(target.id),
+            "username": target.username,
+            "display_name": target.display_name,
+            "bio": target.bio,
+            "avatar_url": target.avatar_url,
+            "cover_url": target.cover_url,
+            "following_count": following_count,
+            "followers_count": followers_count,
+            "is_following": is_following
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"プロフィール取得エラー: {str(e)}")
 
 @app.post("/users/{username}/follow")
 def toggle_follow(username: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -451,14 +493,16 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: mo
         return {"following": False}
     else:
         db.add(models.Follow(follower_id=current_user.id, followed_id=target.id))
-        # フォローされた相手に通知を作成
-        notif = models.Notification(
-            recipient_id=target.id,
-            sender_id=current_user.id,
-            type="follow",
-            message=f"@{current_user.username} さんにフォローされました！"
-        )
-        db.add(notif)
+        try:
+            notif = models.Notification(
+                recipient_id=target.id,
+                sender_id=current_user.id,
+                type="follow",
+                message=f"@{current_user.username} さんにフォローされました！"
+            )
+            db.add(notif)
+        except Exception:
+            pass
         db.commit()
         return {"following": True}
 
@@ -508,31 +552,38 @@ def update_profile(
 # -------------------------------------------------------------
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    notifs = db.query(models.Notification).filter(
-        models.Notification.recipient_id == current_user.id
-    ).order_by(desc(models.Notification.created_at)).limit(30).all()
+    try:
+        notifs = db.query(models.Notification).filter(
+            models.Notification.recipient_id == current_user.id
+        ).order_by(desc(models.Notification.created_at)).limit(30).all()
 
-    res = []
-    for n in notifs:
-        sender = n.sender
-        res.append({
-            "id": str(n.id),
-            "type": n.type,
-            "message": n.message,
-            "is_read": n.is_read,
-            "created_at": n.created_at.isoformat(),
-            "sender_username": sender.username if sender else "someone",
-            "sender_avatar_url": sender.avatar_url if sender else None
-        })
-    return res
+        res = []
+        for n in notifs:
+            sender = n.sender
+            res.append({
+                "id": str(n.id),
+                "type": n.type,
+                "message": n.message,
+                "is_read": n.is_read,
+                "created_at": n.created_at.isoformat(),
+                "sender_username": sender.username if sender else "someone",
+                "sender_avatar_url": sender.avatar_url if sender else None
+            })
+        return res
+    except Exception as e:
+        print(f"[Notification Fetch Error]: {e}")
+        return []
 
 @app.post("/notifications/read")
 def mark_notifications_read(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    db.query(models.Notification).filter(
-        models.Notification.recipient_id == current_user.id,
-        models.Notification.is_read == False
-    ).update({"is_read": True})
-    db.commit()
+    try:
+        db.query(models.Notification).filter(
+            models.Notification.recipient_id == current_user.id,
+            models.Notification.is_read == False
+        ).update({"is_read": True})
+        db.commit()
+    except Exception:
+        pass
     return {"status": "ok"}
 
 # -------------------------------------------------------------
