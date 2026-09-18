@@ -879,19 +879,28 @@ def serve_index():
         return FileResponse(index_path)
     return {"message": "Travel Log API is running. static/index.html was not found."}
 
-# -------------------------------------------------------------
-# 12. フォロー / フォロワーリスト取得 API (不具合修正済み)
-# -------------------------------------------------------------
+# ==========================================
+# フォロー / フォロワーリスト取得 API (文字列username・UUID両対応)
+# ==========================================
 @app.get("/api/users/{user_id}/followers")
 async def get_followers(user_id: str, db: Session = Depends(get_db)):
+    clean_id = user_id.strip()
+    
+    # user_id が UUID か username かを判定してユーザーを取得
     try:
-        target_uuid = uuid.UUID(user_id)
+        target_uuid = uuid.UUID(clean_id)
+        target_user = db.query(models.User).filter(models.User.id == target_uuid).first()
     except ValueError:
-        raise HTTPException(status_code=400, detail="無効なユーザーIDです")
+        target_user = db.query(models.User).filter(
+            or_(models.User.username == clean_id, models.User.username.ilike(clean_id))
+        ).first()
+
+    if not target_user:
+        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
 
     # followed_id が対象ユーザーかつ承認済みのレコードを取得
     follows = db.query(models.Follow).filter(
-        models.Follow.followed_id == target_uuid,
+        models.Follow.followed_id == target_user.id,
         models.Follow.status == "accepted"
     ).all()
     
@@ -911,14 +920,23 @@ async def get_followers(user_id: str, db: Session = Depends(get_db)):
 
 @app.get("/api/users/{user_id}/following")
 async def get_following(user_id: str, db: Session = Depends(get_db)):
+    clean_id = user_id.strip()
+
+    # user_id が UUID か username かを判定してユーザーを取得
     try:
-        target_uuid = uuid.UUID(user_id)
+        target_uuid = uuid.UUID(clean_id)
+        target_user = db.query(models.User).filter(models.User.id == target_uuid).first()
     except ValueError:
-        raise HTTPException(status_code=400, detail="無効なユーザーIDです")
+        target_user = db.query(models.User).filter(
+            or_(models.User.username == clean_id, models.User.username.ilike(clean_id))
+        ).first()
+
+    if not target_user:
+        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
 
     # follower_id が対象ユーザーかつ承認済みのレコードを取得
     follows = db.query(models.Follow).filter(
-        models.Follow.follower_id == target_uuid,
+        models.Follow.follower_id == target_user.id,
         models.Follow.status == "accepted"
     ).all()
     
