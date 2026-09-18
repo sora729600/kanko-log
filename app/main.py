@@ -2,10 +2,11 @@ import os
 import shutil
 import uuid
 import traceback
+import json
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional, List, Dict
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,7 +22,7 @@ from app.database import engine, Base, get_db
 import app.models as models
 
 # -------------------------------------------------------------
-# 1. データベース自動修復 & 初期化（following_id NOT NULL 解除）
+# 1. データベース自動修復 & 初期化
 # -------------------------------------------------------------
 def init_and_fix_db():
     try:
@@ -31,40 +32,29 @@ def init_and_fix_db():
                 DO $$
                 BEGIN
                     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'follows') THEN
-                        -- 以前の following_id が残っていて NOT NULL 制約があれば解除
                         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'following_id') THEN
                             ALTER TABLE follows ALTER COLUMN following_id DROP NOT NULL;
                         END IF;
-
-                        -- followed_id が無ければ追加
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'followed_id') THEN
                             ALTER TABLE follows ADD COLUMN followed_id UUID;
                         END IF;
-
-                        -- follower_id が無ければ追加
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'follower_id') THEN
                             ALTER TABLE follows ADD COLUMN follower_id UUID;
                         END IF;
-
-                        -- status が無ければ追加
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'status') THEN
                             ALTER TABLE follows ADD COLUMN status VARCHAR(20) DEFAULT 'accepted';
                         END IF;
-
-                        -- 既存レコードで followed_id が空なら following_id の値を引き継ぐ
                         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'follows' AND column_name = 'following_id') THEN
                             UPDATE follows SET followed_id = following_id WHERE followed_id IS NULL AND following_id IS NOT NULL;
                         END IF;
                     END IF;
 
-                    -- users テーブルに is_private 追加
                     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
                         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_private') THEN
                             ALTER TABLE users ADD COLUMN is_private BOOLEAN DEFAULT FALSE;
                         END IF;
                     END IF;
 
-                    -- notifications テーブルの確認
                     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'notifications') THEN
                         CREATE TABLE notifications (
                             id UUID PRIMARY KEY,
@@ -78,7 +68,7 @@ def init_and_fix_db():
                     END IF;
                 END $$;
             """))
-            print("[DB Migration] Repaired follows table schema and dropped outdated constraints.")
+            print("[DB Migration] Repaired tables successfully.")
     except Exception as e:
         print(f"[DB Migration Note]: {e}")
 
@@ -112,9 +102,32 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # -------------------------------------------------------------
+# WebSocket コネクションマネージャー
+# -------------------------------------------------------------
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, username: str, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections[username.lower()] = websocket
+
+    def disconnect(self, username: str):
+        clean = username.lower()
+        if clean in self.active_connections:
+            del self.active_connections[clean]
+
+    async def send_personal_message(self, message: dict, recipient_username: str):
+        clean = recipient_username.lower()
+        if clean in self.active_connections:
+            await self.active_connections[clean].send_text(json.dumps(message))
+
+manager = ConnectionManager()
+
+# -------------------------------------------------------------
 # 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.2.2")
+app = FastAPI(title="Travel Log", version="1.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -321,8 +334,7 @@ def get_spots(
 
         result = []
         for s in spots:
-            lat = 0.0
-            lng = 0.0
+            lat, lng = 0.0, 0.0
             try:
                 point = to_shape(s.geom)
                 lat = float(point.y)
@@ -568,7 +580,6 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: mo
             notif_type = "follow_request" if target.is_private else "follow"
             notif_msg = f"@{current_user.username} さんからフォロー申請が届きました！" if target.is_private else f"@{current_user.username} さんにフォローされました！"
 
-            # following_id の古いカラムが存在していても安全に両方に書き込めるSQLを実行
             db.execute(text("""
                 INSERT INTO follows (id, follower_id, followed_id, status, created_at)
                 VALUES (:id, :follower_id, :followed_id, :status, :created_at)
@@ -599,7 +610,6 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: mo
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"フォロー処理に失敗しました: {str(e)}")
 
-# 申請中（自分が送信した保留中の申請一覧）
 @app.get("/friends/outgoing-requests")
 def get_outgoing_requests(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     reqs = db.query(models.Follow).filter(
@@ -615,7 +625,6 @@ def get_outgoing_requests(db: Session = Depends(get_db), current_user: models.Us
         "avatar_url": u.avatar_url
     } for u in users]
 
-# 承認待ち（自分宛に届いた保留中の申請一覧）
 @app.get("/friends/incoming-requests")
 def get_incoming_requests(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     reqs = db.query(models.Follow).filter(
@@ -631,7 +640,6 @@ def get_incoming_requests(db: Session = Depends(get_db), current_user: models.Us
         "avatar_url": u.avatar_url
     } for u in users]
 
-# 申請の承認・拒否
 @app.post("/friends/decision")
 def handle_follow_decision(payload: FollowDecision, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     clean_target = payload.target_username.strip()
@@ -670,7 +678,6 @@ def handle_follow_decision(payload: FollowDecision, db: Session = Depends(get_db
         db.commit()
         return {"status": "declined"}
 
-# 鍵アカウント設定
 @app.post("/users/privacy")
 def update_privacy(payload: PrivacyUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     current_user.is_private = payload.is_private
@@ -759,7 +766,7 @@ def mark_notifications_read(db: Session = Depends(get_db), current_user: models.
     return {"status": "ok"}
 
 # -------------------------------------------------------------
-# 10. DM (ダイレクトメッセージ)
+# 10. DM (ダイレクトメッセージ & WebSocket)
 # -------------------------------------------------------------
 @app.get("/messages/conversations")
 def get_conversations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -805,7 +812,7 @@ def get_messages(partner_username: str, db: Session = Depends(get_db), current_u
     } for m in msgs]
 
 @app.post("/messages")
-def send_message(payload: DmCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+async def send_message(payload: DmCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     clean_name = payload.recipient_username.strip()
     recipient = db.query(models.User).filter(
         or_(models.User.username == clean_name, models.User.username.ilike(clean_name))
@@ -822,7 +829,45 @@ def send_message(payload: DmCreate, db: Session = Depends(get_db), current_user:
     db.add(msg)
     db.commit()
     db.refresh(msg)
-    return {"status": "sent", "id": str(msg.id)}
+
+    msg_data = {
+        "id": str(msg.id),
+        "sender_username": current_user.username,
+        "recipient_username": recipient.username,
+        "content": msg.content,
+        "created_at": msg.created_at.isoformat()
+    }
+
+    # 相手へリアルタイム送信
+    await manager.send_personal_message(msg_data, recipient.username)
+
+    return msg_data
+
+@app.websocket("/ws/dm")
+async def websocket_dm_endpoint(websocket: WebSocket, token: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if not username:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+        clean = username.strip()
+        user = db.query(models.User).filter(
+            or_(models.User.username == clean, models.User.username.ilike(clean))
+        ).first()
+        if not user:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+    except Exception:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    await manager.connect(user.username, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(user.username)
 
 # -------------------------------------------------------------
 # 11. トップページ

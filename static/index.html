@@ -306,10 +306,10 @@
       </div>
     </div>
 
-    <!-- 3. プロフィールモーダル -->
+    <!-- 3. プロフィールモーダル（インスタ風グリッド対応） -->
     <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden">
-        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-900">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-900 shrink-0">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 bg-slate-900"></span>
             <span class="text-[10px] font-mono tracking-[0.2em] uppercase font-bold text-slate-900">Journalist Profile</span>
@@ -339,15 +339,15 @@
           </div>
         </div>
 
-        <div class="space-y-4">
-          <div id="profileCover" class="w-full h-28 border border-slate-900 rounded-xl bg-slate-100 bg-cover bg-center relative shadow-sm">
+        <div class="overflow-y-auto space-y-4 pr-1">
+          <div id="profileCover" class="w-full h-24 border border-slate-900 rounded-xl bg-slate-100 bg-cover bg-center relative shadow-sm shrink-0">
             <div class="absolute bottom-2 left-2 passport-badge bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[9px] font-bold text-slate-800">
               PASSPORT ARCHIVE
             </div>
           </div>
 
           <div class="flex items-start gap-3.5">
-            <div id="profileAvatar" class="w-16 h-16 rounded-xl border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
+            <div id="profileAvatar" class="w-14 h-14 rounded-xl border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
             
             <div class="flex-1 min-w-0">
               <h2 id="profileDisplayName" class="text-base font-extrabold text-slate-900 leading-tight truncate"></h2>
@@ -356,21 +356,42 @@
             </div>
           </div>
 
-          <div class="bg-slate-50 border-l-2 border-slate-900 p-3 rounded-r-xl">
+          <div class="bg-slate-50 border-l-2 border-slate-900 p-2.5 rounded-r-xl">
             <p id="profileBio" class="text-xs text-slate-700 leading-relaxed font-normal"></p>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
-            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm">
+          <div class="grid grid-cols-2 gap-2 font-mono">
+            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Following</span>
               <span id="profileFollowingCount" class="text-sm font-black text-slate-900">0</span>
             </div>
-            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm">
+            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Followers</span>
               <span id="profileFollowersCount" class="text-sm font-black text-slate-900">0</span>
             </div>
           </div>
+
+          <!-- インスタ風グリッド領域 -->
+          <div class="pt-2 border-t border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-bold tracking-widest text-slate-500 uppercase font-mono">📷 POSTS</span>
+            </div>
+            <div id="profileGrid" class="grid grid-cols-3 gap-1.5">
+              <p class="col-span-3 text-center text-slate-400 py-6 text-xs">投稿はありません</p>
+            </div>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 投稿詳細ポップアップモーダル -->
+    <div id="spotDetailModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative overflow-hidden">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
+          <h2 id="spotDetailTitle" class="text-xs font-bold text-slate-900 truncate"></h2>
+          <button onclick="closeSpotDetailModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
+        </div>
+        <div id="spotDetailBody" class="space-y-3"></div>
       </div>
     </div>
 
@@ -495,6 +516,7 @@
     let currentFilterUser = null;
     let currentUser = null;
     let activeDmPartner = null;
+    let ws = null;
     let map = null;
     let currentMarker = null;
 
@@ -531,6 +553,7 @@
           currentUser = await res.json();
           updateViewState(true);
           renderAuthUI(currentUser);
+          initWebSocket();
           loadStories();
           loadNotifications();
           loadSpots();
@@ -543,6 +566,40 @@
         updateViewState(false);
         renderAuthUI(null);
       }
+    }
+
+    // --- WebSocket 初期化 (DMリアルタイム配信用) ---
+    function initWebSocket() {
+      const token = getToken();
+      if (!token) return;
+      
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws/dm?token=${encodeURIComponent(token)}`;
+
+      if (ws) {
+        ws.close();
+      }
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          // 現在チャットモーダルを開いている相手からのメッセージであれば直接追加
+          if (activeDmPartner && msg.sender_username.toLowerCase() === activeDmPartner.toLowerCase()) {
+            appendDmMessage(msg);
+          }
+        } catch(e) {
+          console.error(e);
+        }
+      };
+
+      ws.onclose = () => {
+        // 切断された場合5秒後に再接続
+        setTimeout(() => {
+          if (currentUser) initWebSocket();
+        }, 5000);
+      };
     }
 
     function renderAuthUI(user) {
@@ -572,13 +629,14 @@
     }
 
     window.logout = function() {
+      if (ws) ws.close();
       removeToken();
       currentUser = null;
       renderAuthUI(null);
       updateViewState(false);
     };
 
-    // --- ストーリートレイ ---
+    // --- ストーリートレイ (友達の丸アイコンをクリックするとプロフィールへ遷移) ---
     async function loadStories() {
       const token = getToken();
       if (!token) return;
@@ -602,7 +660,7 @@
           const bgStyle = s.avatar_url ? `style="background-image: url('${s.avatar_url}')"` : '';
           const ringColor = s.has_recent_spot ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-300';
           return `
-            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="filterByUser('${encodeURIComponent(s.username)}')">
+            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="openProfile('${encodeURIComponent(s.username)}')">
               <div class="w-13 h-13 rounded-full border-2 ${ringColor} p-0.5">
                 <div class="w-12 h-12 rounded-full bg-slate-200 bg-cover bg-center flex items-center justify-center font-bold text-xs" ${bgStyle}>
                   ${!s.avatar_url ? s.display_name.charAt(0).toUpperCase() : ''}
@@ -616,11 +674,6 @@
         console.error(e);
       }
     }
-
-    window.filterByUser = function(encodedUsername) {
-      currentFilterUser = decodeURIComponent(encodedUsername);
-      loadSpots();
-    };
 
     // --- 通知 ---
     async function loadNotifications() {
@@ -677,7 +730,7 @@
       document.getElementById('notificationsModal').classList.add('hidden');
     };
 
-    // --- 認証 ---
+    // --- 認証ログイン処理 ---
     let isGateRegisterMode = false;
     const gateToggleBtn = document.getElementById('gateToggleBtn');
     const gateTitle = document.getElementById('gateTitle');
@@ -728,6 +781,7 @@
           updateViewState(true);
           renderAuthUI(currentUser);
           gateAuthForm.reset();
+          initWebSocket();
           loadStories();
           loadNotifications();
           loadSpots();
@@ -789,7 +843,7 @@
       }
     });
 
-    // --- DM ---
+    // --- DM会話 & リアルタイムメッセージ送信 ---
     window.openConversationsModal = async function() {
       const token = getToken();
       const res = await fetch('/messages/conversations', {
@@ -847,18 +901,23 @@
       if (res.ok) {
         const msgs = await res.json();
         const list = document.getElementById('dmMessageList');
-        list.innerHTML = msgs.map(m => {
-          const isMe = m.sender_username.toLowerCase() === currentUser.username.toLowerCase();
-          return `
-            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-              <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
-                ${m.content}
-              </div>
-            </div>
-          `;
-        }).join('');
-        list.scrollTop = list.scrollHeight;
+        list.innerHTML = '';
+        msgs.forEach(m => appendDmMessage(m));
       }
+    }
+
+    function appendDmMessage(m) {
+      const list = document.getElementById('dmMessageList');
+      const isMe = m.sender_username.toLowerCase() === currentUser.username.toLowerCase();
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+      msgDiv.innerHTML = `
+        <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
+          ${m.content}
+        </div>
+      `;
+      list.appendChild(msgDiv);
+      list.scrollTop = list.scrollHeight;
     }
 
     document.getElementById('dmSendForm').addEventListener('submit', async (e) => {
@@ -877,8 +936,9 @@
         body: JSON.stringify({ recipient_username: activeDmPartner, content })
       });
       if (res.ok) {
+        const data = await res.json();
         input.value = '';
-        loadDmMessages();
+        appendDmMessage(data);
       }
     });
 
@@ -1013,7 +1073,7 @@
       }
     };
 
-    // --- プロフィール表示 & 3点メニュー ---
+    // --- プロフィール表示（インスタ風グリッド読み込み機能付き） ---
     window.openProfile = async function(rawUsername) {
       const username = decodeURIComponent(rawUsername);
       const token = getToken();
@@ -1056,11 +1116,9 @@
         const act = document.getElementById('profileActionContainer');
 
         if (currentUser && currentUser.username.toLowerCase() === user.username.toLowerCase()) {
-          // 自分
           myMenuContainer.classList.remove('hidden');
           act.innerHTML = `<button onclick="openEditProfile()" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">EDIT PROFILE</button>`;
         } else {
-          // 相手
           myMenuContainer.classList.add('hidden');
           let followBtnText = "FOLLOW";
           let followBtnClass = "navy-btn";
@@ -1085,9 +1143,96 @@
 
         document.getElementById('profileDropdown').classList.add('hidden');
         document.getElementById('profileModal').classList.remove('hidden');
+
+        // そのユーザーの投稿（インスタ風グリッド）を取得してレンダリング
+        loadProfileSpotsGrid(user.username);
       } catch (err) {
         alert('プロフィール取得時にエラーが発生しました');
       }
+    };
+
+    // インスタ風グリッドのレンダリング
+    async function loadProfileSpotsGrid(username) {
+      const gridEl = document.getElementById('profileGrid');
+      gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs font-mono">Loading posts...</p>';
+      
+      const token = getToken();
+      try {
+        const res = await fetch(`/spots?target_username=${encodeURIComponent(username)}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (!res.ok) {
+          gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs">投稿を取得できませんでした</p>';
+          return;
+        }
+        const spots = await res.json();
+        if (spots.length === 0) {
+          gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs">投稿はありません</p>';
+          return;
+        }
+
+        gridEl.innerHTML = spots.map(s => {
+          let mediaMarkup = '';
+          if (s.media_url) {
+            if (s.media_type === 'video') {
+              mediaMarkup = `<video src="${s.media_url}" class="w-full h-full object-cover"></video>`;
+            } else {
+              mediaMarkup = `<img src="${s.media_url}" class="w-full h-full object-cover" />`;
+            }
+          } else {
+            mediaMarkup = `
+              <div class="w-full h-full bg-slate-100 flex items-center justify-center p-2 text-[10px] font-bold text-slate-700 text-center truncate">
+                📍 ${s.name}
+              </div>
+            `;
+          }
+
+          return `
+            <div class="aspect-square bg-slate-200 border border-slate-900/10 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition relative" onclick="openSpotDetailModal('${s.id}')">
+              ${mediaMarkup}
+            </div>
+          `;
+        }).join('');
+
+        // グローバルにスポットデータをキャッシュ（詳細表示用）
+        window.cachedProfileSpots = spots;
+      } catch(e) {
+        gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs">エラーが発生しました</p>';
+      }
+    }
+
+    // グリッド写真クリック時の詳細ポップアップ
+    window.openSpotDetailModal = function(spotId) {
+      if (!window.cachedProfileSpots) return;
+      const spot = window.cachedProfileSpots.find(s => s.id === spotId);
+      if (!spot) return;
+
+      document.getElementById('spotDetailTitle').innerText = spot.name;
+      const visitDate = new Date(spot.visited_at);
+      const dateText = `${visitDate.getFullYear()}.${String(visitDate.getMonth() + 1).padStart(2, '0')}.${String(visitDate.getDate()).padStart(2, '0')}`;
+
+      const bodyEl = document.getElementById('spotDetailBody');
+      bodyEl.innerHTML = `
+        ${spot.media_url ? (
+          spot.media_type === 'video'
+            ? `<video src="${spot.media_url}" controls class="w-full max-h-60 object-cover rounded-xl bg-black"></video>`
+            : `<img src="${spot.media_url}" class="w-full max-h-60 object-cover rounded-xl border border-slate-200" />`
+        ) : ''}
+        <div class="text-xs space-y-1.5">
+          <p class="text-slate-400 font-mono text-[10px]">${dateText}</p>
+          ${spot.memo ? `<p class="text-slate-700 leading-relaxed">${spot.memo}</p>` : ''}
+          <div class="pt-2 flex justify-end">
+            <a href="${spot.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">
+              Google Maps ↗
+            </a>
+          </div>
+        </div>
+      `;
+      document.getElementById('spotDetailModal').classList.remove('hidden');
+    };
+
+    window.closeSpotDetailModal = function() {
+      document.getElementById('spotDetailModal').classList.add('hidden');
     };
 
     window.closeProfileModal = function() {
@@ -1119,7 +1264,6 @@
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
-          // 即座にプロフィール情報を再読み込みしてボタンとフォロワー数を更新
           await openProfile(username);
           loadStories();
         } else {
