@@ -186,7 +186,7 @@
         <div id="authStatusContainer"></div>
 
         <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm ml-1">
-          <span>+ ADD</span>
+          <span>+</span>
         </button>
       </div>
     </header>
@@ -407,7 +407,7 @@
           <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
             <div class="flex items-center justify-between">
               <div>
-                <p class="font-bold text-slate-900">非公開アカウント（鍵垢）</p>
+                <p class="font-bold text-slate-900">非公開アカウント</p>
                 <p class="text-[10px] text-slate-500 mt-0.5">フォローを承認制にし、許可した友達のみに公開します</p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer ml-3">
@@ -598,7 +598,7 @@
         // 切断された場合5秒後に再接続
         setTimeout(() => {
           if (currentUser) initWebSocket();
-        }, 5000);
+        }, 1000);
       };
     }
 

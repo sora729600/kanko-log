@@ -878,3 +878,38 @@ def serve_index():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {"message": "Travel Log API is running. static/index.html was not found."}
+
+# ==========================================
+# フォロー / フォロワーリスト取得 API
+# ==========================================
+@app.get("/api/users/{user_id}/followers")
+async def get_followers(user_id: str, db: Session = Depends(get_db)):
+    follows = db.query(models.Follow).filter(models.Follow.following_id == user_id).all()
+    follower_ids = [f.follower_id for f in follows]
+    users = db.query(models.User).filter(models.User.id.in_(follower_ids)).all()
+    
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "avatar_url": u.avatar_url,
+            "is_private": u.is_private if hasattr(u, 'is_private') else False
+        }
+        for u in users
+    ]
+
+@app.get("/api/users/{user_id}/following")
+async def get_following(user_id: str, db: Session = Depends(get_db)):
+    follows = db.query(models.Follow).filter(models.Follow.follower_id == user_id).all()
+    following_ids = [f.following_id for f in follows]
+    users = db.query(models.User).filter(models.User.id.in_(following_ids)).all()
+    
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "avatar_url": u.avatar_url,
+            "is_private": u.is_private if hasattr(u, 'is_private') else False
+        }
+        for u in users
+    ]
