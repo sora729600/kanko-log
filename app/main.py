@@ -142,7 +142,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # -------------------------------------------------------------
-# 4. 認証ヘルパー
+# 4. 認証ヘルパー & リクエストモデル
 # -------------------------------------------------------------
 class UserRegister(BaseModel):
     username: str
@@ -879,37 +879,59 @@ def serve_index():
         return FileResponse(index_path)
     return {"message": "Travel Log API is running. static/index.html was not found."}
 
-# ==========================================
-# フォロー / フォロワーリスト取得 API
-# ==========================================
+# -------------------------------------------------------------
+# 12. フォロー / フォロワーリスト取得 API (不具合修正済み)
+# -------------------------------------------------------------
 @app.get("/api/users/{user_id}/followers")
 async def get_followers(user_id: str, db: Session = Depends(get_db)):
-    follows = db.query(models.Follow).filter(models.Follow.following_id == user_id).all()
-    follower_ids = [f.follower_id for f in follows]
-    users = db.query(models.User).filter(models.User.id.in_(follower_ids)).all()
+    try:
+        target_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無効なユーザーIDです")
+
+    # followed_id が対象ユーザーかつ承認済みのレコードを取得
+    follows = db.query(models.Follow).filter(
+        models.Follow.followed_id == target_uuid,
+        models.Follow.status == "accepted"
+    ).all()
+    
+    follower_ids = [f.follower_id for f in follows if f.follower_id is not None]
+    users = db.query(models.User).filter(models.User.id.in_(follower_ids)).all() if follower_ids else []
     
     return [
         {
-            "id": u.id,
+            "id": str(u.id),
             "username": u.username,
+            "display_name": u.display_name or u.username,
             "avatar_url": u.avatar_url,
-            "is_private": u.is_private if hasattr(u, 'is_private') else False
+            "is_private": u.is_private or False
         }
         for u in users
     ]
 
 @app.get("/api/users/{user_id}/following")
 async def get_following(user_id: str, db: Session = Depends(get_db)):
-    follows = db.query(models.Follow).filter(models.Follow.follower_id == user_id).all()
-    following_ids = [f.following_id for f in follows]
-    users = db.query(models.User).filter(models.User.id.in_(following_ids)).all()
+    try:
+        target_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無効なユーザーIDです")
+
+    # follower_id が対象ユーザーかつ承認済みのレコードを取得
+    follows = db.query(models.Follow).filter(
+        models.Follow.follower_id == target_uuid,
+        models.Follow.status == "accepted"
+    ).all()
+    
+    following_ids = [f.followed_id for f in follows if f.followed_id is not None]
+    users = db.query(models.User).filter(models.User.id.in_(following_ids)).all() if following_ids else []
     
     return [
         {
-            "id": u.id,
+            "id": str(u.id),
             "username": u.username,
+            "display_name": u.display_name or u.username,
             "avatar_url": u.avatar_url,
-            "is_private": u.is_private if hasattr(u, 'is_private') else False
+            "is_private": u.is_private or False
         }
         for u in users
     ]
