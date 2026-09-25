@@ -219,7 +219,7 @@
     </main>
 
     <!-- 通知モーダル -->
-    <div id="notificationsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="notificationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeNotificationsModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Notifications</h2>
@@ -230,7 +230,7 @@
     </div>
 
     <!-- ユーザー検索モーダル -->
-    <div id="userSearchModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="userSearchModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeUserSearchModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Search Users</h2>
@@ -250,7 +250,7 @@
     </div>
 
     <!-- 投稿モーダル -->
-    <div id="postModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div id="postModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="handleBackdropClick(event, closePostModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-5">
           <div>
@@ -307,7 +307,7 @@
     </div>
 
     <!-- 3. プロフィールモーダル -->
-    <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="profileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeProfileModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-900 shrink-0">
           <div class="flex items-center gap-2">
@@ -347,7 +347,8 @@
           </div>
 
           <div class="flex items-start gap-3.5">
-            <div id="profileAvatar" class="w-14 h-14 rounded-xl border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
+            <!-- プロフィールアイコン：丸型（rounded-full）に変更 -->
+            <div id="profileAvatar" class="w-14 h-14 rounded-full border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a] overflow-hidden"></div>
             
             <div class="flex-1 min-w-0">
               <h2 id="profileDisplayName" class="text-base font-extrabold text-slate-900 leading-tight truncate"></h2>
@@ -385,7 +386,7 @@
     </div>
 
     <!-- ユーザー一覧モーダル（フォロー/フォロワー表示用） -->
-    <div id="userListModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="userListModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeUserListModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 id="userListModalTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">USERS</h2>
@@ -398,7 +399,7 @@
     </div>
 
     <!-- 投稿詳細ポップアップモーダル -->
-    <div id="spotDetailModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="spotDetailModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeSpotDetailModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative overflow-hidden">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
           <h2 id="spotDetailTitle" class="text-xs font-bold text-slate-900 truncate"></h2>
@@ -409,7 +410,7 @@
     </div>
 
     <!-- 設定モーダル -->
-    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="settingsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeSettingsModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Settings & Friends</h2>
@@ -434,7 +435,7 @@
     </div>
 
     <!-- 承認待ち一覧モーダル -->
-    <div id="incomingRequestsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="incomingRequestsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeIncomingRequestsModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">承認待ちの申請</h2>
@@ -447,7 +448,7 @@
     </div>
 
     <!-- 申請中アカウント一覧モーダル -->
-    <div id="outgoingRequestsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="outgoingRequestsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeOutgoingRequestsModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">申請中のアカウント</h2>
@@ -460,7 +461,7 @@
     </div>
 
     <!-- プロフィール編集モーダル -->
-    <div id="editProfileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="editProfileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeEditProfileModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">Edit Profile</h2>
@@ -491,7 +492,7 @@
     </div>
 
     <!-- DM 会話一覧モーダル -->
-    <div id="conversationsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="conversationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeConversationsModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Messages</h2>
@@ -504,7 +505,7 @@
     </div>
 
     <!-- DM チャットモーダル -->
-    <div id="dmModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="dmModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeDmModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl h-[520px] flex flex-col shadow-2xl overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-900 flex items-center justify-between bg-slate-50">
           <div class="flex items-center gap-2">
@@ -539,6 +540,13 @@
     const feedEl = document.getElementById('feed');
     const formEl = document.getElementById('postForm');
     const postModal = document.getElementById('postModal');
+
+    // --- モーダルの背景（オーバーレイ）クリック時に閉じる汎用ハンドラ ---
+    function handleBackdropClick(e, closeFunc) {
+      if (e.target.classList.contains('modal-overlay')) {
+        closeFunc();
+      }
+    }
 
     function getToken() { return localStorage.getItem('access_token'); }
     function setToken(t) { localStorage.setItem('access_token', t); }
