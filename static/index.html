@@ -306,7 +306,7 @@
       </div>
     </div>
 
-    <!-- 3. プロフィールモーダル（インスタ風グリッド対応） -->
+    <!-- 3. プロフィールモーダル -->
     <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-900 shrink-0">
@@ -361,11 +361,11 @@
           </div>
 
           <div class="grid grid-cols-2 gap-2 font-mono">
-            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm">
+            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition" onclick="openUserListModal('following')">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Following</span>
               <span id="profileFollowingCount" class="text-sm font-black text-slate-900">0</span>
             </div>
-            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm">
+            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition" onclick="openUserListModal('followers')">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Followers</span>
               <span id="profileFollowersCount" class="text-sm font-black text-slate-900">0</span>
             </div>
@@ -380,6 +380,19 @@
               <p class="col-span-3 text-center text-slate-400 py-6 text-xs">投稿はありません</p>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ユーザー一覧モーダル（フォロー/フォロワー表示用） -->
+    <div id="userListModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 id="userListModalTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">USERS</h2>
+          <button onclick="closeUserListModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="userListContent" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
+          <p class="text-center text-slate-400 py-6">読み込み中...</p>
         </div>
       </div>
     </div>
@@ -516,6 +529,7 @@
     let currentFilterUser = null;
     let currentUser = null;
     let activeDmPartner = null;
+    let currentProfileUsername = null;
     let ws = null;
     let map = null;
     let currentMarker = null;
@@ -585,8 +599,10 @@
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          // 現在チャットモーダルを開いている相手からのメッセージであれば直接追加
-          if (activeDmPartner && msg.sender_username.toLowerCase() === activeDmPartner.toLowerCase()) {
+          if (activeDmPartner && (
+            msg.sender_username.toLowerCase() === activeDmPartner.toLowerCase() ||
+            msg.sender_username.toLowerCase() === currentUser.username.toLowerCase()
+          )) {
             appendDmMessage(msg);
           }
         } catch(e) {
@@ -595,7 +611,6 @@
       };
 
       ws.onclose = () => {
-        // 切断された場合5秒後に再接続
         setTimeout(() => {
           if (currentUser) initWebSocket();
         }, 1000);
@@ -636,7 +651,7 @@
       updateViewState(false);
     };
 
-    // --- ストーリートレイ (友達の丸アイコンをクリックするとプロフィールへ遷移) ---
+    // --- ストーリートレイ ---
     async function loadStories() {
       const token = getToken();
       if (!token) return;
@@ -698,17 +713,21 @@
           if (notifs.length === 0) {
             listEl.innerHTML = '<p class="text-center text-slate-400 py-6">新しい通知はありません</p>';
           } else {
-            listEl.innerHTML = notifs.map(n => `
-              <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
-                <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
-                  ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
+            listEl.innerHTML = notifs.map(n => {
+              const d = new Date(n.created_at);
+              const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleString();
+              return `
+                <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
+                  <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
+                    ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs text-slate-800 font-medium">${n.message}</p>
+                    <span class="text-[9px] text-slate-400 font-mono">${timeStr}</span>
+                  </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs text-slate-800 font-medium">${n.message}</p>
-                  <span class="text-[9px] text-slate-400 font-mono">${new Date(n.created_at).toLocaleString()}</span>
-                </div>
-              </div>
-            `).join('');
+              `;
+            }).join('');
           }
         }
       } catch (e) {}
@@ -843,7 +862,7 @@
       }
     });
 
-    // --- DM会話 & リアルタイムメッセージ送信 ---
+    // --- DM会話 & リアルタイムメッセージ送信・削除 ---
     window.openConversationsModal = async function() {
       const token = getToken();
       const res = await fetch('/messages/conversations', {
@@ -908,17 +927,47 @@
 
     function appendDmMessage(m) {
       const list = document.getElementById('dmMessageList');
+      if (document.getElementById(`msg-${m.id}`)) return;
+
       const isMe = m.sender_username.toLowerCase() === currentUser.username.toLowerCase();
       const msgDiv = document.createElement('div');
-      msgDiv.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+      msgDiv.id = `msg-${m.id}`;
+      msgDiv.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} group relative`;
+      
       msgDiv.innerHTML = `
-        <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
-          ${m.content}
+        <div class="flex items-center gap-1.5 max-w-[85%]">
+          ${isMe ? `
+            <button onclick="deleteDmMessage('${m.id}')" class="opacity-0 group-hover:opacity-100 transition text-slate-300 hover:text-rose-500 text-[10px] p-1 shrink-0" title="削除">
+              🗑️
+            </button>
+          ` : ''}
+          <div class="p-2.5 rounded-2xl text-xs ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
+            ${m.content}
+          </div>
         </div>
       `;
       list.appendChild(msgDiv);
       list.scrollTop = list.scrollHeight;
     }
+
+    window.deleteDmMessage = async function(messageId) {
+      if (!confirm('このメッセージを削除しますか？')) return;
+      const token = getToken();
+      try {
+        const res = await fetch(`/messages/${messageId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const el = document.getElementById(`msg-${messageId}`);
+          if (el) el.remove();
+        } else {
+          alert('メッセージの削除に失敗しました');
+        }
+      } catch (e) {
+        alert('通信エラーが発生しました');
+      }
+    };
 
     document.getElementById('dmSendForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -936,11 +985,54 @@
         body: JSON.stringify({ recipient_username: activeDmPartner, content })
       });
       if (res.ok) {
-        const data = await res.json();
         input.value = '';
-        appendDmMessage(data);
       }
     });
+
+    // --- フォロー / フォロワー 一覧表示機能 ---
+    window.openUserListModal = async function(type) {
+      if (!currentProfileUsername) return;
+      const titleEl = document.getElementById('userListModalTitle');
+      const contentEl = document.getElementById('userListContent');
+      
+      titleEl.innerText = type === 'following' ? 'FOLLOWING' : 'FOLLOWERS';
+      contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">読み込み中...</p>';
+      document.getElementById('userListModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/users/${encodeURIComponent(currentProfileUsername)}/${type}`);
+        if (!res.ok) {
+          contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">一覧を取得できませんでした</p>';
+          return;
+        }
+        const users = await res.json();
+        if (users.length === 0) {
+          contentEl.innerHTML = `<p class="text-center text-slate-400 py-6">${type === 'following' ? 'フォロー中のユーザーはいません' : 'フォロワーはいません'}</p>`;
+          return;
+        }
+
+        contentEl.innerHTML = users.map(u => `
+          <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); closeProfileModal(); openProfile('${encodeURIComponent(u.username)}');">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
+              </div>
+              <div>
+                <p class="font-bold text-slate-900 leading-none">${u.display_name || u.username}</p>
+                <p class="text-[10px] text-slate-400 font-mono mt-0.5">@${u.username}</p>
+              </div>
+            </div>
+            <span class="text-[10px] text-slate-800 font-bold">VIEW ↗</span>
+          </div>
+        `).join('');
+      } catch (e) {
+        contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">エラーが発生しました</p>';
+      }
+    };
+
+    window.closeUserListModal = function() {
+      document.getElementById('userListModal').classList.add('hidden');
+    };
 
     // --- フィード制御 ---
     window.switchFeedTab = function(tab) {
@@ -1073,9 +1165,10 @@
       }
     };
 
-    // --- プロフィール表示（インスタ風グリッド読み込み機能付き） ---
+    // --- プロフィール表示 ---
     window.openProfile = async function(rawUsername) {
       const username = decodeURIComponent(rawUsername);
+      currentProfileUsername = username;
       const token = getToken();
       try {
         const res = await fetch(`/users/${encodeURIComponent(username)}`, {
@@ -1144,14 +1237,12 @@
         document.getElementById('profileDropdown').classList.add('hidden');
         document.getElementById('profileModal').classList.remove('hidden');
 
-        // そのユーザーの投稿（インスタ風グリッド）を取得してレンダリング
         loadProfileSpotsGrid(user.username);
       } catch (err) {
         alert('プロフィール取得時にエラーが発生しました');
       }
     };
 
-    // インスタ風グリッドのレンダリング
     async function loadProfileSpotsGrid(username) {
       const gridEl = document.getElementById('profileGrid');
       gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs font-mono">Loading posts...</p>';
@@ -1194,14 +1285,12 @@
           `;
         }).join('');
 
-        // グローバルにスポットデータをキャッシュ（詳細表示用）
         window.cachedProfileSpots = spots;
       } catch(e) {
         gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs">エラーが発生しました</p>';
       }
     }
 
-    // グリッド写真クリック時の詳細ポップアップ
     window.openSpotDetailModal = function(spotId) {
       if (!window.cachedProfileSpots) return;
       const spot = window.cachedProfileSpots.find(s => s.id === spotId);
@@ -1277,7 +1366,7 @@
       }
     };
 
-    // --- 3点メニュー：設定 ---
+    // --- 設定 ---
     window.openSettingsModal = function() {
       document.getElementById('profileDropdown').classList.add('hidden');
       document.getElementById('privateAccountToggle').checked = !!currentUser.is_private;
@@ -1304,7 +1393,7 @@
       }
     };
 
-    // --- 3点メニュー：承認待ち一覧 ---
+    // --- 承認待ち一覧 ---
     window.openIncomingRequestsModal = async function() {
       document.getElementById('profileDropdown').classList.add('hidden');
       const token = getToken();
@@ -1362,7 +1451,7 @@
       }
     };
 
-    // --- 3点メニュー：申請中アカウント一覧 ---
+    // --- 申請中アカウント一覧 ---
     window.openOutgoingRequestsModal = async function() {
       document.getElementById('profileDropdown').classList.add('hidden');
       const token = getToken();

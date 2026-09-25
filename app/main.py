@@ -127,7 +127,7 @@ manager = ConnectionManager()
 # -------------------------------------------------------------
 # 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.3.0")
+app = FastAPI(title="Travel Log", version="1.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -739,12 +739,13 @@ def get_notifications(db: Session = Depends(get_db), current_user: models.User =
         res = []
         for n in notifs:
             sender = n.sender
+            created_at_iso = (n.created_at.isoformat() + "Z") if n.created_at else (datetime.utcnow().isoformat() + "Z")
             res.append({
                 "id": str(n.id),
                 "type": n.type,
                 "message": n.message,
                 "is_read": n.is_read,
-                "created_at": n.created_at.isoformat(),
+                "created_at": created_at_iso,
                 "sender_username": sender.username if sender else "someone",
                 "sender_avatar_url": sender.avatar_url if sender else None
             })
@@ -808,7 +809,7 @@ def get_messages(partner_username: str, db: Session = Depends(get_db), current_u
         "id": str(m.id),
         "sender_username": current_user.username if m.sender_id == current_user.id else partner.username,
         "content": m.content,
-        "created_at": m.created_at.isoformat()
+        "created_at": (m.created_at.isoformat() + "Z") if m.created_at else (datetime.utcnow().isoformat() + "Z")
     } for m in msgs]
 
 @app.post("/messages")
@@ -835,13 +836,32 @@ async def send_message(payload: DmCreate, db: Session = Depends(get_db), current
         "sender_username": current_user.username,
         "recipient_username": recipient.username,
         "content": msg.content,
-        "created_at": msg.created_at.isoformat()
+        "created_at": (msg.created_at.isoformat() + "Z") if msg.created_at else (datetime.utcnow().isoformat() + "Z")
     }
 
-    # 相手へリアルタイム送信
+    # 受信者および送信者（自身）の双方にリアルタイム通知
     await manager.send_personal_message(msg_data, recipient.username)
+    await manager.send_personal_message(msg_data, current_user.username)
 
     return msg_data
+
+@app.delete("/messages/{message_id}")
+def delete_message(message_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    try:
+        msg_uuid = uuid.UUID(message_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無効なメッセージIDです")
+
+    msg = db.query(models.Message).filter(models.Message.id == msg_uuid).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="メッセージが見つかりません")
+    
+    if msg.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="自分の送信メッセージのみ削除できます")
+
+    db.delete(msg)
+    db.commit()
+    return {"status": "deleted", "id": message_id}
 
 @app.websocket("/ws/dm")
 async def websocket_dm_endpoint(websocket: WebSocket, token: str = Query(...), db: Session = Depends(get_db)):
