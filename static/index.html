@@ -217,15 +217,16 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>鍵垢（承認制）対応のフレンド機能</span>
+          <span>お互いのログを共有するフォロー & DM</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>思い出に音楽を添える「TODAY'S SONG」機能</span>
+          <span>思い出にYouTubeの「今日の1曲」を添付</span>
         </div>
       </div>
     </div>
 
+    <!-- 認証フォーム -->
     <div class="bg-white border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
       <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-4">
         <h2 id="gateTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">SIGN IN TO YOUR LOG</h2>
@@ -258,6 +259,8 @@
         </button>
       </form>
 
+      <div id="gateStatusMessage" class="hidden mt-3 rounded-xl border px-3 py-2 text-[11px] leading-relaxed"></div>
+
       <div class="mt-4 text-center">
         <button type="button" id="gateToggleBtn" class="text-[11px] text-slate-500 hover:text-slate-900 font-semibold transition underline decoration-slate-300 underline-offset-4">
           アカウントを新規作成する
@@ -284,20 +287,13 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <button onclick="openUserSearchModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition" title="ユーザーを探す">
+        <button onclick="openUserSearchModal()" class="text-slate-700 hover:text-slate-950 p-1 transition" title="ユーザーを探す">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </button>
 
-        <button onclick="openNotificationsModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition relative" title="通知">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          <span id="notifBadge" class="hidden absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
-        </button>
-
-        <button onclick="openConversationsModal()" class="text-slate-700 hover:text-slate-950 p-1.5 transition" title="メッセージ">
+        <button onclick="openConversationsModal()" class="text-slate-700 hover:text-slate-950 p-1 transition relative" title="メッセージ">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
@@ -305,52 +301,38 @@
 
         <div id="authStatusContainer"></div>
 
-        <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm ml-1">
+        <!-- 投稿ボタン：パートナー様の add.html へ移動するリンク -->
+        <a href="/static/add.html" id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm font-mono" title="新しい思い出を記録">
           <span>+</span>
-        </button>
+        </a>
       </div>
     </header>
 
-    <!-- インスタ風ストーリートレイ -->
-    <div id="storiesContainer" class="bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto no-scrollbar flex items-center gap-3.5">
-      <div id="myStoryAvatar" class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="openProfile(currentUser.username)">
-        <div class="w-13 h-13 rounded-full border-2 border-slate-900 p-0.5 relative">
-          <div id="myStoryImg" class="w-12 h-12 rounded-full bg-slate-100 bg-cover bg-center flex items-center justify-center font-bold text-xs">
-            +
-          </div>
-        </div>
-        <span class="text-[10px] font-bold text-slate-800 truncate w-14 text-center">My Log</span>
-      </div>
-
-      <div id="followingStoriesList" class="flex items-center gap-3.5"></div>
-    </div>
-
     <!-- フィード切り替えタブ -->
-    <div class="px-4 pt-3 flex items-center gap-4 text-xs font-bold tracking-wider border-b border-slate-200 bg-white">
+    <div class="px-4 pt-3 flex items-center gap-4 text-xs font-bold tracking-wider border-b border-slate-200">
       <button id="tabAll" onclick="switchFeedTab('all')" class="pb-2 text-slate-900 border-b-2 border-slate-900">ALL</button>
       <button id="tabFollowing" onclick="switchFeedTab('following')" class="pb-2 text-slate-400 hover:text-slate-700">FOLLOWING</button>
     </div>
 
-    <!-- メインフィード -->
+    <!-- メインコンテンツ -->
     <main class="p-4 flex-1">
+      <div class="tl-filter-card bg-white rounded-xl p-3 mb-5 flex items-center justify-between border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-bold tracking-wider text-slate-500 uppercase">DATE</span>
+          <input type="date" id="dateFilter" class="navy-input rounded-lg px-2.5 py-1 text-xs text-slate-800">
+        </div>
+        <button id="clearDate" class="text-[11px] font-semibold tracking-wider text-slate-500 hover:text-slate-900 px-2 py-1 transition">
+          RESET
+        </button>
+      </div>
+
       <div id="feed" class="space-y-7">
         <p class="text-center text-xs text-slate-400 py-12 tracking-widest uppercase font-medium">Loading...</p>
       </div>
     </main>
 
-    <!-- 通知モーダル -->
-    <div id="notificationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeNotificationsModal)">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Notifications</h2>
-          <button onclick="closeNotificationsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
-        </div>
-        <div id="notificationsList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
-      </div>
-    </div>
-
-    <!-- ユーザー検索モーダル -->
-    <div id="userSearchModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeUserSearchModal)">
+    <!-- ユーザーID検索モーダル -->
+    <div id="userSearchModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Search Users</h2>
@@ -369,225 +351,56 @@
       </div>
     </div>
 
-    <!-- 投稿モーダル（YouTube URL音楽添付機能つき） -->
-    <div id="postModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="handleBackdropClick(event, closePostModal)">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-5">
-          <div>
-            <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">New Log</h2>
-            <p class="text-[10px] text-slate-400 font-medium tracking-wider">思い出を記録する</p>
-          </div>
-          <button id="cancelModalBtn" class="text-slate-400 hover:text-slate-900 text-xs px-2 py-1 font-medium transition">✕ キャンセル</button>
-        </div>
-
-        <form id="postForm" class="space-y-4">
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Search Location</label>
-            <div class="flex gap-2">
-              <input type="text" id="searchLocationInput" class="w-full rounded-xl p-2.5 text-xs navy-input placeholder-slate-400" placeholder="地名・スポット名を入力...">
-              <button type="button" id="searchLocationBtn" class="navy-btn font-semibold px-4 rounded-xl text-xs tracking-wider transition">Search</button>
-            </div>
-            <div id="searchSuggestions" class="hidden mt-2 bg-white rounded-xl border border-slate-200 shadow-lg max-h-40 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Spot Name</label>
-            <input type="text" id="spotNameInput" name="name" required class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="スポット名">
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Visited Date & Time</label>
-            <input type="datetime-local" id="visitedAtInput" name="visited_at" class="w-full rounded-xl p-2.5 text-xs navy-input text-slate-800">
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Pin on Map</label>
-            <div id="pickerMap" class="w-full h-44 rounded-xl border border-slate-300 overflow-hidden"></div>
-            <input type="hidden" id="selectedLat" name="latitude" value="37.5665">
-            <input type="hidden" id="selectedLng" name="longitude" value="126.9780">
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Media</label>
-            <input type="file" name="file" accept="image/*,video/*" class="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-slate-300 file:text-xs file:font-semibold file:bg-slate-50 file:text-slate-800">
-          </div>
-
-          <!-- TODAY'S SONG（音楽URL入力欄） -->
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">🎵 TODAY'S SONG (YouTube URL)</label>
-            <input type="url" id="songUrlInput" class="w-full rounded-xl p-2.5 text-xs navy-input placeholder-slate-400" placeholder="https://www.youtube.com/watch?v=...">
-            <input type="text" id="songTitleInput" class="w-full rounded-xl p-2 text-xs navy-input placeholder-slate-400 mt-1.5" placeholder="曲名 — アーティスト名（省略可）">
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Note</label>
-            <textarea id="memoInput" rows="2" class="w-full rounded-xl p-2.5 text-xs navy-input placeholder-slate-400" placeholder="メモや感想..."></textarea>
-          </div>
-
-          <div class="pt-3 border-t border-slate-100">
-            <button type="submit" class="w-full navy-btn font-bold py-3 rounded-xl text-xs tracking-[0.15em] uppercase shadow-sm transition">
-              Post Log
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- 3. プロフィールモーダル -->
-    <div id="profileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeProfileModal)">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden max-h-[90vh] flex flex-col">
-        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-900 shrink-0">
+    <!-- プロフィールモーダル -->
+    <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden">
+        
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-900">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 bg-slate-900"></span>
             <span class="text-[10px] font-mono tracking-[0.2em] uppercase font-bold text-slate-900">Journalist Profile</span>
-            <span id="profilePrivateBadge" class="hidden text-[9px] bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 font-mono">🔒 PRIVATE</span>
           </div>
-
-          <div class="flex items-center gap-2">
-            <div id="myMenuContainer" class="relative hidden">
-              <button onclick="toggleProfileMenu()" class="text-slate-600 hover:text-slate-950 px-1.5 py-0.5 font-bold text-base transition">
-                ⋮
-              </button>
-              <div id="profileDropdown" class="hidden absolute right-0 mt-1 w-44 bg-white border border-slate-900 rounded-2xl shadow-xl py-1.5 text-xs z-50 font-medium">
-                <button onclick="openIncomingRequestsModal()" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center justify-between">
-                  <span>承認待ち一覧</span>
-                </button>
-                <button onclick="openOutgoingRequestsModal()" class="w-full text-left px-4 py-2 hover:bg-slate-50">
-                  <span>申請中アカウント</span>
-                </button>
-                <div class="border-t border-slate-100 my-1"></div>
-                <button onclick="openSettingsModal()" class="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-800">
-                  <span>⚙️ 設定・友だち</span>
-                </button>
-              </div>
-            </div>
-
-            <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
-          </div>
+          <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
         </div>
 
-        <div class="overflow-y-auto space-y-4 pr-1">
-          <div id="profileCover" class="w-full h-24 border border-slate-900 rounded-xl bg-slate-100 bg-cover bg-center relative shadow-sm shrink-0">
+        <div class="space-y-4">
+          <div id="profileCover" class="w-full h-28 border border-slate-900 rounded-xl bg-slate-100 bg-cover bg-center relative shadow-sm">
             <div class="absolute bottom-2 left-2 passport-badge bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[9px] font-bold text-slate-800">
               PASSPORT ARCHIVE
             </div>
           </div>
 
           <div class="flex items-start gap-3.5">
-            <div id="profileAvatar" class="w-14 h-14 rounded-full border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a] overflow-hidden"></div>
+            <div id="profileAvatar" class="w-16 h-16 rounded-xl border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
             
             <div class="flex-1 min-w-0">
               <h2 id="profileDisplayName" class="text-base font-extrabold text-slate-900 leading-tight truncate"></h2>
               <p id="profileUsername" class="text-[11px] text-slate-400 font-mono mt-0.5"></p>
+              
               <div id="profileActionContainer" class="mt-2 flex gap-1.5"></div>
             </div>
           </div>
 
-          <div class="bg-slate-50 border-l-2 border-slate-900 p-2.5 rounded-r-xl">
+          <div class="bg-slate-50 border-l-2 border-slate-900 p-3 rounded-r-xl">
             <p id="profileBio" class="text-xs text-slate-700 leading-relaxed font-normal"></p>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 font-mono">
-            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition" onclick="openUserListModal('following')">
+          <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
+            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Following</span>
               <span id="profileFollowingCount" class="text-sm font-black text-slate-900">0</span>
             </div>
-            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition" onclick="openUserListModal('followers')">
+            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Followers</span>
               <span id="profileFollowersCount" class="text-sm font-black text-slate-900">0</span>
             </div>
           </div>
-
-          <!-- インスタ風グリッド領域 -->
-          <div class="pt-2 border-t border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-[10px] font-bold tracking-widest text-slate-500 uppercase font-mono">📷 POSTS</span>
-            </div>
-            <div id="profileGrid" class="grid grid-cols-3 gap-1.5">
-              <p class="col-span-3 text-center text-slate-400 py-6 text-xs">投稿はありません</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ユーザー一覧モーダル（フォロー/フォロワー表示用） -->
-    <div id="userListModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeUserListModal)">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-          <h2 id="userListModalTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">USERS</h2>
-          <button onclick="closeUserListModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
-        </div>
-        <div id="userListContent" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
-          <p class="text-center text-slate-400 py-6">読み込み中...</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 投稿詳細ポップアップモーダル -->
-    <div id="spotDetailModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeSpotDetailModal)">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative overflow-hidden">
-        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
-          <h2 id="spotDetailTitle" class="text-xs font-bold text-slate-900 truncate"></h2>
-          <button onclick="closeSpotDetailModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
-        </div>
-        <div id="spotDetailBody" class="space-y-3"></div>
-      </div>
-    </div>
-
-    <!-- 設定モーダル -->
-    <div id="settingsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeSettingsModal)">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Settings & Friends</h2>
-          <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
-        </div>
-
-        <div class="space-y-4 text-xs">
-          <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/50">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-bold text-slate-900">非公開アカウント</p>
-                <p class="text-[10px] text-slate-500 mt-0.5">フォローを承認制にし、許可した友達のみに公開します</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer ml-3">
-                <input type="checkbox" id="privateAccountToggle" class="sr-only peer" onchange="togglePrivateAccount(this.checked)">
-                <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 承認待ち一覧モーダル -->
-    <div id="incomingRequestsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeIncomingRequestsModal)">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">承認待ちの申請</h2>
-          <button onclick="closeIncomingRequestsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
-        </div>
-        <div id="incomingRequestsList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
-          <p class="text-center text-slate-400 py-6">承認待ちのフォロー申請はありません</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 申請中アカウント一覧モーダル -->
-    <div id="outgoingRequestsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeOutgoingRequestsModal)">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">申請中のアカウント</h2>
-          <button onclick="closeOutgoingRequestsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
-        </div>
-        <div id="outgoingRequestsList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
-          <p class="text-center text-slate-400 py-6">申請中のアカウントはありません</p>
         </div>
       </div>
     </div>
 
     <!-- プロフィール編集モーダル -->
-    <div id="editProfileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeEditProfileModal)">
+    <div id="editProfileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">Edit Profile</h2>
@@ -618,7 +431,7 @@
     </div>
 
     <!-- DM 会話一覧モーダル -->
-    <div id="conversationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeConversationsModal)">
+    <div id="conversationsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Messages</h2>
@@ -631,7 +444,7 @@
     </div>
 
     <!-- DM チャットモーダル -->
-    <div id="dmModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeDmModal)">
+    <div id="dmModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl h-[520px] flex flex-col shadow-2xl overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-900 flex items-center justify-between bg-slate-50">
           <div class="flex items-center gap-2">
@@ -653,25 +466,14 @@
 
   <script>
     let currentFeedTab = 'all';
-    let currentFilterUser = null;
     let currentUser = null;
     let activeDmPartner = null;
-    let currentProfileUsername = null;
-    let ws = null;
-    let map = null;
-    let currentMarker = null;
 
     const landingView = document.getElementById('landingView');
     const appView = document.getElementById('appView');
     const feedEl = document.getElementById('feed');
-    const formEl = document.getElementById('postForm');
-    const postModal = document.getElementById('postModal');
-
-    function handleBackdropClick(e, closeFunc) {
-      if (e.target.classList.contains('modal-overlay')) {
-        closeFunc();
-      }
-    }
+    const dateFilterEl = document.getElementById('dateFilter');
+    const clearDateEl = document.getElementById('clearDate');
 
     function getToken() { return localStorage.getItem('access_token'); }
     function setToken(t) { localStorage.setItem('access_token', t); }
@@ -700,9 +502,6 @@
           currentUser = await res.json();
           updateViewState(true);
           renderAuthUI(currentUser);
-          initWebSocket();
-          loadStories();
-          loadNotifications();
           loadSpots();
         } else {
           removeToken();
@@ -715,150 +514,30 @@
       }
     }
 
-    function initWebSocket() {
-      const token = getToken();
-      if (!token) return;
-      
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws/dm?token=${encodeURIComponent(token)}`;
-
-      if (ws) ws.close();
-      ws = new WebSocket(wsUrl);
-
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (activeDmPartner && (
-            msg.sender_username.toLowerCase() === activeDmPartner.toLowerCase() ||
-            msg.sender_username.toLowerCase() === currentUser.username.toLowerCase()
-          )) {
-            appendDmMessage(msg);
-          }
-        } catch(e) {
-          console.error(e);
-        }
-      };
-
-      ws.onclose = () => {
-        setTimeout(() => { if (currentUser) initWebSocket(); }, 1000);
-      };
-    }
-
     function renderAuthUI(user) {
       const c = document.getElementById('authStatusContainer');
       if (user) {
         c.innerHTML = `
-          <div class="flex items-center gap-1.5">
-            <button onclick="openProfile('${encodeURIComponent(user.username)}')" class="navy-btn-outline text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 transition">
+          <div class="flex items-center gap-2">
+            <button onclick="openProfile('${user.username}')" class="navy-btn-outline text-[10px] font-bold tracking-wider px-3 py-1 rounded-full flex items-center gap-1 transition">
               <span>👤</span><span>Account</span>
             </button>
-            <button onclick="logout()" class="text-[9px] font-bold tracking-wider text-slate-400 hover:text-slate-900 uppercase transition px-1">
+            <button onclick="logout()" class="text-[9px] font-bold tracking-wider text-slate-400 hover:text-slate-900 uppercase transition">
               LOGOUT
             </button>
           </div>
         `;
-        const myImg = document.getElementById('myStoryImg');
-        if (user.avatar_url) {
-          myImg.style.backgroundImage = `url('${user.avatar_url}')`;
-          myImg.innerText = '';
-        } else {
-          myImg.style.backgroundImage = 'none';
-          myImg.innerText = user.display_name.charAt(0).toUpperCase();
-        }
       } else {
         c.innerHTML = '';
       }
     }
 
     window.logout = function() {
-      if (ws) ws.close();
       removeToken();
       currentUser = null;
       renderAuthUI(null);
       updateViewState(false);
     };
-
-    async function loadStories() {
-      const token = getToken();
-      if (!token) return;
-
-      try {
-        const res = await fetch('/users/following/stories', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) return;
-        const stories = await res.json();
-        const listEl = document.getElementById('followingStoriesList');
-
-        if (stories.length === 0) {
-          listEl.innerHTML = `<span class="text-[10px] text-slate-400 italic shrink-0">友達を検索してフォローしてみましょう！</span>`;
-          return;
-        }
-
-        listEl.innerHTML = stories.map(s => {
-          const bgStyle = s.avatar_url ? `style="background-image: url('${s.avatar_url}')"` : '';
-          const ringColor = s.has_recent_spot ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-300';
-          return `
-            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="openProfile('${encodeURIComponent(s.username)}')">
-              <div class="w-13 h-13 rounded-full border-2 ${ringColor} p-0.5">
-                <div class="w-12 h-12 rounded-full bg-slate-200 bg-cover bg-center flex items-center justify-center font-bold text-xs" ${bgStyle}>
-                  ${!s.avatar_url ? s.display_name.charAt(0).toUpperCase() : ''}
-                </div>
-              </div>
-              <span class="text-[10px] font-bold text-slate-800 truncate w-14 text-center">${s.display_name}</span>
-            </div>
-          `;
-        }).join('');
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    async function loadNotifications() {
-      const token = getToken();
-      if (!token) return;
-
-      try {
-        const res = await fetch('/notifications', { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) {
-          const notifs = await res.json();
-          const hasUnread = notifs.some(n => !n.is_read);
-          const badge = document.getElementById('notifBadge');
-          if (hasUnread) badge.classList.remove('hidden'); else badge.classList.add('hidden');
-
-          const listEl = document.getElementById('notificationsList');
-          if (notifs.length === 0) {
-            listEl.innerHTML = '<p class="text-center text-slate-400 py-6">新しい通知はありません</p>';
-          } else {
-            listEl.innerHTML = notifs.map(n => {
-              const d = new Date(n.created_at);
-              const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleString();
-              return `
-                <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
-                  <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
-                    ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-xs text-slate-800 font-medium">${n.message}</p>
-                    <span class="text-[9px] text-slate-400 font-mono">${timeStr}</span>
-                  </div>
-                </div>
-              `;
-            }).join('');
-          }
-        }
-      } catch (e) {}
-    }
-
-    window.openNotificationsModal = async function() {
-      document.getElementById('notificationsModal').classList.remove('hidden');
-      const token = getToken();
-      if (token) {
-        await fetch('/notifications/read', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-        document.getElementById('notifBadge').classList.add('hidden');
-      }
-    };
-    window.closeNotificationsModal = function() { document.getElementById('notificationsModal').classList.add('hidden'); };
 
     let isGateRegisterMode = false;
     const gateToggleBtn = document.getElementById('gateToggleBtn');
@@ -867,58 +546,168 @@
     const gateEmailContainer = document.getElementById('gateEmailContainer');
     const gateDisplayNameContainer = document.getElementById('gateDisplayNameContainer');
     const gateAuthForm = document.getElementById('gateAuthForm');
+    const gateStatusMessage = document.getElementById('gateStatusMessage');
+    const gateUsername = document.getElementById('gateUsername');
+    const gatePassword = document.getElementById('gatePassword');
+    const gateEmail = document.getElementById('gateEmail');
+    const gateDisplayName = document.getElementById('gateDisplayName');
 
-    gateToggleBtn.addEventListener('click', () => {
-      isGateRegisterMode = !isGateRegisterMode;
-      if (isGateRegisterMode) {
+    function setGateStatus(message = '', type = 'info') {
+      if (!gateStatusMessage) return;
+      if (!message) {
+        gateStatusMessage.textContent = '';
+        gateStatusMessage.className = 'hidden mt-3 rounded-xl border px-3 py-2 text-[11px] leading-relaxed';
+        return;
+      }
+      gateStatusMessage.textContent = message;
+      const styles = {
+        info: 'bg-slate-50 border-slate-200 text-slate-600',
+        success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+        error: 'bg-rose-50 border-rose-200 text-rose-700'
+      };
+      gateStatusMessage.className = `mt-3 rounded-xl border px-3 py-2 text-[11px] leading-relaxed ${styles[type] || styles.info}`;
+    }
+
+    function setGateMode(registerMode) {
+      isGateRegisterMode = registerMode;
+      if (registerMode) {
         gateTitle.innerText = 'CREATE TRAVEL ARCHIVE';
         gateSubmitBtn.innerText = 'Create Account';
         gateEmailContainer.classList.remove('hidden');
         gateDisplayNameContainer.classList.remove('hidden');
+        gateEmail.required = true;
+        gateDisplayName.required = true;
         gateToggleBtn.innerText = 'すでにアカウントをお持ちの方はこちら（ログイン）';
       } else {
         gateTitle.innerText = 'SIGN IN TO YOUR LOG';
         gateSubmitBtn.innerText = 'Enter Travel Log';
         gateEmailContainer.classList.add('hidden');
         gateDisplayNameContainer.classList.add('hidden');
+        gateEmail.required = false;
+        gateDisplayName.required = false;
         gateToggleBtn.innerText = 'アカウントを新規作成する';
       }
+    }
+
+    gateToggleBtn?.addEventListener('click', () => {
+      setGateStatus('');
+      setGateMode(!isGateRegisterMode);
     });
 
-    gateAuthForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const endpoint = isGateRegisterMode ? '/auth/register' : '/auth/login';
-      const payload = {
-        username: document.getElementById('gateUsername').value.trim(),
-        password: document.getElementById('gatePassword').value
-      };
-      if (isGateRegisterMode) {
-        payload.email = document.getElementById('gateEmail').value.trim();
-        payload.display_name = document.getElementById('gateDisplayName').value.trim();
+    async function readResponseBody(response) {
+      const text = await response.text();
+      if (!text) return {};
+      try { return JSON.parse(text); } catch (_) { return { detail: text }; }
+    }
+
+    function readableAuthError(data, fallback) {
+      if (!data) return fallback;
+      if (typeof data.detail === 'string') return data.detail;
+      if (typeof data.message === 'string') return data.message;
+      if (Array.isArray(data.detail)) return data.detail.map(item => item?.msg || item?.message || String(item)).join(' / ');
+      return fallback;
+    }
+
+    async function requestLogin(username, password) {
+      let response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      let data = await readResponseBody(response);
+      if (!response.ok && [400, 415, 422].includes(response.status)) {
+        const body = new URLSearchParams();
+        body.set('username', username);
+        body.set('password', password);
+        response = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
+        });
+        data = await readResponseBody(response);
       }
+      return { response, data };
+    }
+
+    async function resolveLoggedInUser(accessToken, fallbackUser = null) {
+      if (fallbackUser && fallbackUser.username) return fallbackUser;
+      const meResponse = await fetch('/auth/me', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      if (!meResponse.ok) return fallbackUser;
+      return await readResponseBody(meResponse);
+    }
+
+    async function completeLogin(accessToken, userData = null) {
+      if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+        throw new Error('ログイン用トークンを取得できませんでした。');
+      }
+      setToken(accessToken);
+      const resolvedUser = await resolveLoggedInUser(accessToken, userData);
+      if (!resolvedUser || !resolvedUser.username) {
+        removeToken();
+        throw new Error('ユーザー情報を取得できませんでした。');
+      }
+      currentUser = resolvedUser;
+      updateViewState(true);
+      renderAuthUI(currentUser);
+      gateAuthForm.reset();
+      setGateStatus('');
+      loadSpots();
+    }
+
+    gateAuthForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = gateUsername.value.trim();
+      const password = gatePassword.value;
+      const email = gateEmail.value.trim();
+      const displayName = gateDisplayName.value.trim();
+
+      if (!username) { setGateStatus('User ID を入力してください。', 'error'); gateUsername.focus(); return; }
+      if (!password) { setGateStatus('Password を入力してください。', 'error'); gatePassword.focus(); return; }
+
+      gateSubmitBtn.disabled = true;
+      gateToggleBtn.disabled = true;
+      setGateStatus(isGateRegisterMode ? 'アカウントを作成しています...' : 'ログインしています...', 'info');
 
       try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setToken(data.access_token);
-          currentUser = data.user;
-          updateViewState(true);
-          renderAuthUI(currentUser);
-          gateAuthForm.reset();
-          initWebSocket();
-          loadStories();
-          loadNotifications();
-          loadSpots();
-        } else {
-          alert(data.detail || '認証に失敗しました');
+        if (isGateRegisterMode) {
+          const registerPayload = { username, password, email, display_name: displayName };
+          const registerResponse = await fetch('/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(registerPayload)
+          });
+          const registerData = await readResponseBody(registerResponse);
+          if (!registerResponse.ok) {
+            throw new Error(readableAuthError(registerData, `アカウント作成に失敗しました (HTTP ${registerResponse.status})`));
+          }
+          if (registerData.access_token) {
+            await completeLogin(registerData.access_token, registerData.user || registerData);
+            return;
+          }
+          setGateStatus('アカウントを作成しました。ログイン処理を続けています...', 'success');
+          const { response: loginResponse, data: loginData } = await requestLogin(username, password);
+          if (loginResponse.ok && loginData.access_token) {
+            await completeLogin(loginData.access_token, loginData.user);
+            return;
+          }
+          setGateMode(false);
+          gateUsername.value = username;
+          gatePassword.value = '';
+          setGateStatus('アカウントの作成は完了しました。作成したパスワードでログインしてください。', 'success');
+          return;
         }
+
+        const { response, data } = await requestLogin(username, password);
+        if (!response.ok) throw new Error(readableAuthError(data, `ログインに失敗しました (HTTP ${response.status})`));
+        if (!data.access_token) throw new Error('ログインには成功しましたが、認証トークンが返されませんでした。');
+
+        await completeLogin(data.access_token, data.user);
       } catch (err) {
-        alert('通信エラーが発生しました');
+        setGateStatus(err?.message || '通信エラーが発生しました。', 'error');
+      } finally {
+        gateSubmitBtn.disabled = false;
+        gateToggleBtn.disabled = false;
+        gateSubmitBtn.innerText = isGateRegisterMode ? 'Create Account' : 'Enter Travel Log';
       }
     });
 
@@ -947,7 +736,7 @@
       }
 
       listEl.innerHTML = users.map(u => `
-        <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserSearchModal(); openProfile('${encodeURIComponent(u.username)}');">
+        <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserSearchModal(); openProfile('${u.username}');">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
               ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
@@ -962,10 +751,6 @@
       `).join('');
     };
 
-    document.getElementById('userSearchInput')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); executeUserSearch(); }
-    });
-
     window.openConversationsModal = async function() {
       const token = getToken();
       const res = await fetch('/messages/conversations', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -976,7 +761,7 @@
           listEl.innerHTML = '<p class="text-center text-slate-400 py-6">メッセージのやり取りはありません<br><span class="text-[10px]">ユーザー検索からDMを送ってみましょう！</span></p>';
         } else {
           listEl.innerHTML = users.map(u => `
-            <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeConversationsModal(); openDmChat('${encodeURIComponent(u.username)}');">
+            <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeConversationsModal(); openDmChat('${u.username}');">
               <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
                   ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
@@ -995,126 +780,8 @@
     };
     window.closeConversationsModal = function() { document.getElementById('conversationsModal').classList.add('hidden'); };
 
-    window.openDmChat = async function(rawUsername) {
-      const username = decodeURIComponent(rawUsername);
-      activeDmPartner = username;
-      closeProfileModal();
-      document.getElementById('dmPartnerTitle').innerText = `@${username} とのDM`;
-      document.getElementById('dmModal').classList.remove('hidden');
-      loadDmMessages();
-    };
-    window.closeDmModal = function() { document.getElementById('dmModal').classList.add('hidden'); activeDmPartner = null; };
-
-    async function loadDmMessages() {
-      if (!activeDmPartner) return;
-      const token = getToken();
-      const res = await fetch(`/messages/${encodeURIComponent(activeDmPartner)}`, { headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) {
-        const msgs = await res.json();
-        const list = document.getElementById('dmMessageList');
-        list.innerHTML = '';
-        msgs.forEach(m => appendDmMessage(m));
-      }
-    }
-
-    function appendDmMessage(m) {
-      const list = document.getElementById('dmMessageList');
-      if (document.getElementById(`msg-${m.id}`)) return;
-
-      const isMe = m.sender_username.toLowerCase() === currentUser.username.toLowerCase();
-      const msgDiv = document.createElement('div');
-      msgDiv.id = `msg-${m.id}`;
-      msgDiv.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} group relative`;
-      
-      msgDiv.innerHTML = `
-        <div class="flex items-center gap-1.5 max-w-[85%]">
-          ${isMe ? `
-            <button onclick="deleteDmMessage('${m.id}')" class="opacity-0 group-hover:opacity-100 transition text-slate-300 hover:text-rose-500 text-[10px] p-1 shrink-0" title="削除">
-              🗑️
-            </button>
-          ` : ''}
-          <div class="p-2.5 rounded-2xl text-xs ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
-            ${m.content}
-          </div>
-        </div>
-      `;
-      list.appendChild(msgDiv);
-      list.scrollTop = list.scrollHeight;
-    }
-
-    window.deleteDmMessage = async function(messageId) {
-      if (!confirm('このメッセージを削除しますか？')) return;
-      const token = getToken();
-      try {
-        const res = await fetch(`/messages/${messageId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) {
-          const el = document.getElementById(`msg-${messageId}`);
-          if (el) el.remove();
-        } else {
-          alert('メッセージの削除に失敗しました');
-        }
-      } catch (e) { alert('通信エラーが発生しました'); }
-    };
-
-    document.getElementById('dmSendForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const input = document.getElementById('dmInput');
-      const content = input.value.trim();
-      if (!content || !activeDmPartner) return;
-
-      const token = getToken();
-      const res = await fetch('/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ recipient_username: activeDmPartner, content })
-      });
-      if (res.ok) input.value = '';
-    });
-
-    window.openUserListModal = async function(type) {
-      if (!currentProfileUsername) return;
-      const titleEl = document.getElementById('userListModalTitle');
-      const contentEl = document.getElementById('userListContent');
-      
-      titleEl.innerText = type === 'following' ? 'FOLLOWING' : 'FOLLOWERS';
-      contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">読み込み中...</p>';
-      document.getElementById('userListModal').classList.remove('hidden');
-
-      try {
-        const res = await fetch(`/api/users/${encodeURIComponent(currentProfileUsername)}/${type}`);
-        if (!res.ok) {
-          contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">一覧を取得できませんでした</p>';
-          return;
-        }
-        const users = await res.json();
-        if (users.length === 0) {
-          contentEl.innerHTML = `<p class="text-center text-slate-400 py-6">${type === 'following' ? 'フォロー中のユーザーはいません' : 'フォロワーはいません'}</p>`;
-          return;
-        }
-
-        contentEl.innerHTML = users.map(u => `
-          <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); closeProfileModal(); openProfile('${encodeURIComponent(u.username)}');">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
-                ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
-              </div>
-              <div>
-                <p class="font-bold text-slate-900 leading-none">${u.display_name || u.username}</p>
-                <p class="text-[10px] text-slate-400 font-mono mt-0.5">@${u.username}</p>
-              </div>
-            </div>
-            <span class="text-[10px] text-slate-800 font-bold">VIEW ↗</span>
-          </div>
-        `).join('');
-      } catch (e) {
-        contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">エラーが発生しました</p>';
-      }
-    };
-    window.closeUserListModal = function() { document.getElementById('userListModal').classList.add('hidden'); };
-
     window.switchFeedTab = function(tab) {
       currentFeedTab = tab;
-      currentFilterUser = null;
       const tabAll = document.getElementById('tabAll');
       const tabFollowing = document.getElementById('tabFollowing');
 
@@ -1125,17 +792,13 @@
         tabAll.className = "pb-2 text-slate-400 hover:text-slate-700 font-medium";
         tabFollowing.className = "pb-2 text-slate-900 border-b-2 border-slate-900 font-bold";
       }
-      loadSpots();
+      loadSpots(dateFilterEl.value);
     };
 
-    // --- 音楽機能解析ユーティリティ ---
     function escapeHtml(value) {
       return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+        .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
     }
 
     function parseSpotMusic(memoValue) {
@@ -1146,13 +809,10 @@
       const musicLineIndex = lines.findIndex(line => line.trim().startsWith('🎵'));
       const urlLineIndex = lines.findIndex(line => youtubeRegex.test(line.trim()));
 
-      if (musicLineIndex < 0 && urlLineIndex < 0) {
-        return { memo: raw.trim(), music: null };
-      }
+      if (musicLineIndex < 0 && urlLineIndex < 0) return { memo: raw.trim(), music: null };
 
       const urlLine = urlLineIndex >= 0 ? lines[urlLineIndex].trim() : '';
       const urlMatch = urlLine.match(youtubeRegex);
-
       if (!urlMatch) return { memo: raw.trim(), music: null };
 
       const videoId = urlMatch[1];
@@ -1168,11 +828,7 @@
         title = title.slice(0, separatorIndex).trim() || 'この投稿の1曲';
       }
 
-      const cleanMemo = lines
-        .filter((_, index) => index !== musicLineIndex && index !== urlLineIndex)
-        .join('\n')
-        .trim();
-
+      const cleanMemo = lines.filter((_, index) => index !== musicLineIndex && index !== urlLineIndex).join('\n').trim();
       return { memo: cleanMemo, music: { videoId, externalUrl, title, artist } };
     }
 
@@ -1251,328 +907,159 @@
       });
     }
 
-    async function loadSpots() {
+    async function loadSpots(date = '') {
       feedEl.innerHTML = '<p class="text-center text-xs text-slate-400 py-12 tracking-widest uppercase font-medium">Loading...</p>';
       const token = getToken();
       let url = `/spots?feed_type=${currentFeedTab}`;
-      if (currentFilterUser) url += `&target_username=${encodeURIComponent(currentFilterUser)}`;
+      if (date) url += `&target_date=${date}`;
 
-      try {
-        const res = await fetch(url, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
-        if (!res.ok) {
-          feedEl.innerHTML = `<div class="text-center py-16 border border-dashed border-rose-300 rounded-2xl bg-white/50"><p class="text-xs text-rose-500 tracking-wider font-semibold">データの読み込みに失敗しました (${res.status})</p></div>`;
-          return;
-        }
-        const spots = await res.json();
+      const res = await fetch(url, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+      const spots = await res.json();
 
-        if (!Array.isArray(spots) || spots.length === 0) {
-          feedEl.innerHTML = `<div class="text-center py-16 border border-dashed border-slate-300 rounded-2xl bg-white/50"><p class="text-xs text-slate-400 tracking-[0.2em] font-semibold uppercase">No Logs Archived</p></div>`;
-          return;
-        }
-
-        feedEl.innerHTML = spots.map(s => {
-          const visitDate = new Date(s.visited_at);
-          const dateText = `${visitDate.getFullYear()}.${String(visitDate.getMonth() + 1).padStart(2, '0')}.${String(visitDate.getDate()).padStart(2, '0')}`;
-          const timeText = visitDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-          const avatarBg = s.author_avatar_url ? `style="background-image: url('${s.author_avatar_url}')"` : '';
-          const parsedMemo = parseSpotMusic(s.memo);
-          const musicCard = renderHomeSongCard(parsedMemo.music);
-
-          return `
-            <article class="navy-card rounded-2xl overflow-hidden">
-              <div class="px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-white">
-                <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${encodeURIComponent(s.username)}')">
-                  <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
-                    ${!s.author_avatar_url ? (s.display_name || s.username).charAt(0).toUpperCase() : ''}
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-xs font-bold text-slate-900 leading-none">${s.display_name || s.username}</span>
-                      <span class="text-[10px] text-slate-400 font-mono">@${s.username}</span>
-                    </div>
-                    <h2 class="font-bold text-xs text-slate-800 tracking-wide mt-1">${s.name}</h2>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <a href="${s.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 font-mono">
-                    <span>MAP</span><span>↗</span>
-                  </a>
-                  ${currentUser && currentUser.username.toLowerCase() === s.username.toLowerCase() ? `
-                    <button onclick="deleteSpot('${s.id}')" class="text-slate-300 hover:text-rose-600 p-1">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                  ` : ''}
-                </div>
-              </div>
-
-              ${s.media_url ? (
-                s.media_type === 'video' 
-                  ? `<video src="${s.media_url}" controls class="w-full max-h-[440px] object-cover bg-black"></video>`
-                  : `<img src="${s.media_url}" class="w-full max-h-[440px] object-cover border-b border-slate-100" onerror="this.style.display='none'" />`
-              ) : ''}
-
-              <div class="p-4 bg-white">
-                <div class="flex items-center justify-between mb-2">
-                  <button onclick="toggleSpotLike('${s.id}', this)" class="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-950">
-                    <svg class="w-4 h-4 heart-icon transition-colors ${s.is_liked ? 'text-rose-500 fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    <span class="like-count font-mono font-bold text-xs">${s.likes_count}</span>
-                  </button>
-                  <span class="text-[10px] text-slate-400 font-mono">${dateText} ${timeText}</span>
-                </div>
-                ${musicCard}
-                ${parsedMemo.memo ? `<p class="text-xs text-slate-600 leading-relaxed mt-2">${escapeHtml(parsedMemo.memo).replace(/\n/g, '<br>')}</p>` : ''}
-              </div>
-            </article>
-          `;
-        }).join('');
-
-        wireHomeSongPlayers();
-      } catch (err) {
-        feedEl.innerHTML = `<div class="text-center py-16 border border-dashed border-rose-300 rounded-2xl bg-white/50"><p class="text-xs text-rose-500 tracking-wider font-semibold">ネットワーク接続に失敗しました</p></div>`;
+      if (!Array.isArray(spots) || spots.length === 0) {
+        feedEl.innerHTML = `
+          <div class="text-center py-16 border border-dashed border-slate-300 rounded-2xl bg-white/50">
+            <p class="text-xs text-slate-400 tracking-[0.2em] font-semibold uppercase">No Logs Archived</p>
+          </div>
+        `;
+        return;
       }
+
+      feedEl.innerHTML = spots.map(s => {
+        const visitDate = new Date(s.visited_at);
+        const dateText = `${visitDate.getFullYear()}.${String(visitDate.getMonth() + 1).padStart(2, '0')}.${String(visitDate.getDate()).padStart(2, '0')}`;
+        const timeText = visitDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const avatarBg = s.author_avatar_url ? `style="background-image: url('${s.author_avatar_url}')"` : '';
+        const parsedMemo = parseSpotMusic(s.memo);
+        const musicCard = renderHomeSongCard(parsedMemo.music);
+
+        return `
+          <article class="navy-card tl-post-card rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-white">
+              <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${s.username}')">
+                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
+                  ${!s.author_avatar_url ? (s.display_name || s.username).charAt(0).toUpperCase() : ''}
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-slate-900 leading-none">${s.display_name || s.username}</span>
+                    <span class="text-[10px] text-slate-400 font-mono">@${s.username}</span>
+                  </div>
+                  <h2 class="font-bold text-xs text-slate-800 tracking-wide mt-1">${s.name}</h2>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <a href="${s.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline tl-map-btn text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 font-mono">
+                  <span>MAP</span><span>↗</span>
+                </a>
+                ${currentUser && currentUser.username === s.username ? `
+                  <button onclick="deleteSpot('${s.id}')" class="text-slate-300 hover:text-rose-600 p-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+
+            ${s.media_url ? (
+              s.media_type === 'video' 
+                ? `<video src="${s.media_url}" controls class="w-full max-h-[440px] object-cover bg-black"></video>`
+                : `<img src="${s.media_url}" class="w-full max-h-[440px] object-cover border-b border-slate-100" />`
+            ) : ''}
+
+            <div class="p-4 bg-white">
+              <div class="flex items-center justify-between mb-2">
+                <button onclick="toggleSpotLike('${s.id}', this)" class="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-950">
+                  <svg class="w-4 h-4 heart-icon transition-colors ${s.is_liked ? 'text-rose-500 fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  <span class="like-count font-mono font-bold text-xs">${s.likes_count}</span>
+                </button>
+                <span class="text-[10px] text-slate-400 font-mono">${dateText} ${timeText}</span>
+              </div>
+              ${musicCard}
+              ${parsedMemo.memo ? `<p class="text-xs text-slate-600 leading-relaxed">${escapeHtml(parsedMemo.memo).replace(/\n/g, '<br>')}</p>` : ''}
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      wireHomeSongPlayers();
     }
 
     window.toggleSpotLike = async function(spotId, btn) {
       const token = getToken();
       if (!token) return;
 
-      const res = await fetch(`/spots/${spotId}/like`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`/spots/${spotId}/like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         const heart = btn.querySelector('.heart-icon');
         const countEl = btn.querySelector('.like-count');
         countEl.innerText = data.likes_count;
-        if (data.liked) heart.classList.add('text-rose-500', 'fill-current'); else heart.classList.remove('text-rose-500', 'fill-current');
+        if (data.liked) {
+          heart.classList.add('text-rose-500', 'fill-current');
+        } else {
+          heart.classList.remove('text-rose-500', 'fill-current');
+        }
       }
     };
 
-    window.openProfile = async function(rawUsername) {
-      const username = decodeURIComponent(rawUsername);
-      currentProfileUsername = username;
+    window.openProfile = async function(username) {
       const token = getToken();
-      try {
-        const res = await fetch(`/users/${encodeURIComponent(username)}`, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
-        if (!res.ok) return;
-        const user = await res.json();
-
-        document.getElementById('profileDisplayName').innerText = user.display_name || user.username;
-        document.getElementById('profileUsername').innerText = `@${user.username}`;
-        document.getElementById('profileBio').innerText = user.bio || '自己紹介がまだ記入されていません';
-        document.getElementById('profileFollowingCount').innerText = user.following_count;
-        document.getElementById('profileFollowersCount').innerText = user.followers_count;
-
-        const badgePrivate = document.getElementById('profilePrivateBadge');
-        if (user.is_private) badgePrivate.classList.remove('hidden'); else badgePrivate.classList.add('hidden');
-
-        const avatarEl = document.getElementById('profileAvatar');
-        if (user.avatar_url) { avatarEl.style.backgroundImage = `url('${user.avatar_url}')`; avatarEl.innerText = ''; }
-        else { avatarEl.style.backgroundImage = 'none'; avatarEl.innerText = (user.display_name || user.username).charAt(0).toUpperCase(); }
-
-        const coverEl = document.getElementById('profileCover');
-        coverEl.style.backgroundImage = user.cover_url ? `url('${user.cover_url}')` : 'none';
-
-        const myMenuContainer = document.getElementById('myMenuContainer');
-        const act = document.getElementById('profileActionContainer');
-
-        if (currentUser && currentUser.username.toLowerCase() === user.username.toLowerCase()) {
-          myMenuContainer.classList.remove('hidden');
-          act.innerHTML = `<button onclick="openEditProfile()" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">EDIT PROFILE</button>`;
-        } else {
-          myMenuContainer.classList.add('hidden');
-          let followBtnText = "FOLLOW";
-          let followBtnClass = "navy-btn";
-
-          if (user.follow_status === 'following') { followBtnText = "FOLLOWED"; followBtnClass = "navy-btn-outline"; }
-          else if (user.follow_status === 'pending') { followBtnText = "REQUESTED"; followBtnClass = "navy-btn-outline"; }
-
-          act.innerHTML = `
-            <button id="followBtn" onclick="toggleFollowUser('${encodeURIComponent(user.username)}')" class="${followBtnClass} text-[10px] font-bold px-3 py-1 rounded-full">${followBtnText}</button>
-            <button onclick="openDmChat('${encodeURIComponent(user.username)}')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1"><span>✉️</span><span>DM</span></button>
-          `;
-        }
-
-        document.getElementById('profileDropdown').classList.add('hidden');
-        document.getElementById('profileModal').classList.remove('hidden');
-
-        loadProfileSpotsGrid(user.username);
-      } catch (err) { alert('プロフィール取得時にエラーが発生しました'); }
-    };
-
-    async function loadProfileSpotsGrid(username) {
-      const gridEl = document.getElementById('profileGrid');
-      gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs font-mono">Loading posts...</p>';
-      
-      const token = getToken();
-      try {
-        const res = await fetch(`/spots?target_username=${encodeURIComponent(username)}`, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
-        if (!res.ok) return;
-        const spots = await res.json();
-        if (spots.length === 0) {
-          gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs">投稿はありません</p>';
-          return;
-        }
-
-        gridEl.innerHTML = spots.map(s => {
-          let mediaMarkup = '';
-          if (s.media_url) {
-            mediaMarkup = s.media_type === 'video' ? `<video src="${s.media_url}" class="w-full h-full object-cover"></video>` : `<img src="${s.media_url}" class="w-full h-full object-cover" />`;
-          } else {
-            mediaMarkup = `<div class="w-full h-full bg-slate-100 flex items-center justify-center p-2 text-[10px] font-bold text-slate-700 text-center truncate">📍 ${s.name}</div>`;
-          }
-          return `<div class="aspect-square bg-slate-200 border border-slate-900/10 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition relative" onclick="openSpotDetailModal('${s.id}')">${mediaMarkup}</div>`;
-        }).join('');
-
-        window.cachedProfileSpots = spots;
-      } catch(e) { gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs">エラーが発生しました</p>'; }
-    }
-
-    window.openSpotDetailModal = function(spotId) {
-      if (!window.cachedProfileSpots) return;
-      const spot = window.cachedProfileSpots.find(s => s.id === spotId);
-      if (!spot) return;
-
-      document.getElementById('spotDetailTitle').innerText = spot.name;
-      const visitDate = new Date(spot.visited_at);
-      const dateText = `${visitDate.getFullYear()}.${String(visitDate.getMonth() + 1).padStart(2, '0')}.${String(visitDate.getDate()).padStart(2, '0')}`;
-      const parsedMemo = parseSpotMusic(spot.memo);
-      const musicCard = renderHomeSongCard(parsedMemo.music);
-
-      const bodyEl = document.getElementById('spotDetailBody');
-      bodyEl.innerHTML = `
-        ${spot.media_url ? (spot.media_type === 'video' ? `<video src="${spot.media_url}" controls class="w-full max-h-60 object-cover rounded-xl bg-black"></video>` : `<img src="${spot.media_url}" class="w-full max-h-60 object-cover rounded-xl border border-slate-200" />`) : ''}
-        <div class="text-xs space-y-1.5">
-          <p class="text-slate-400 font-mono text-[10px]">${dateText}</p>
-          ${musicCard}
-          ${parsedMemo.memo ? `<p class="text-slate-700 leading-relaxed">${escapeHtml(parsedMemo.memo)}</p>` : ''}
-          <div class="pt-2 flex justify-end">
-            <a href="${spot.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">Google Maps ↗</a>
-          </div>
-        </div>
-      `;
-      document.getElementById('spotDetailModal').classList.remove('hidden');
-      wireHomeSongPlayers();
-    };
-
-    window.closeSpotDetailModal = function() { document.getElementById('spotDetailModal').classList.add('hidden'); };
-    window.closeProfileModal = function() { document.getElementById('profileModal').classList.add('hidden'); document.getElementById('profileDropdown').classList.add('hidden'); };
-    window.toggleProfileMenu = function() { document.getElementById('profileDropdown').classList.toggle('hidden'); };
-
-    window.toggleFollowUser = async function(rawUsername) {
-      const username = decodeURIComponent(rawUsername);
-      const token = getToken();
-      if (!token) return;
-
-      const btn = document.getElementById('followBtn');
-      if (btn) { btn.innerText = '...'; btn.disabled = true; }
-
-      try {
-        const res = await fetch(`/users/${encodeURIComponent(username)}/follow`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) { await openProfile(username); loadStories(); }
-        else { const errData = await res.json(); alert(errData.detail || 'フォロー処理に失敗しました'); await openProfile(username); }
-      } catch (err) { alert('通信エラーが発生しました'); if (btn) btn.disabled = false; }
-    };
-
-    window.openSettingsModal = function() {
-      document.getElementById('profileDropdown').classList.add('hidden');
-      document.getElementById('privateAccountToggle').checked = !!currentUser.is_private;
-      document.getElementById('settingsModal').classList.remove('hidden');
-    };
-    window.closeSettingsModal = function() { document.getElementById('settingsModal').classList.add('hidden'); };
-
-    window.togglePrivateAccount = async function(isPrivate) {
-      const token = getToken();
-      const res = await fetch('/users/privacy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ is_private: isPrivate })
+      const res = await fetch(`/users/${username}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
-      if (res.ok) { currentUser.is_private = isPrivate; checkAuth(); }
-    };
+      if (!res.ok) return;
+      const user = await res.json();
 
-    window.openIncomingRequestsModal = async function() {
-      document.getElementById('profileDropdown').classList.add('hidden');
-      const token = getToken();
-      const res = await fetch('/friends/incoming-requests', { headers: { 'Authorization': `Bearer ${token}` } });
-      const listEl = document.getElementById('incomingRequestsList');
+      document.getElementById('profileDisplayName').innerText = user.display_name || user.username;
+      document.getElementById('profileUsername').innerText = `@${user.username}`;
+      document.getElementById('profileBio').innerText = user.bio || '自己紹介がまだ記入されていません';
+      document.getElementById('profileFollowingCount').innerText = user.following_count;
+      document.getElementById('profileFollowersCount').innerText = user.followers_count;
 
-      if (res.ok) {
-        const users = await res.json();
-        if (users.length === 0) {
-          listEl.innerHTML = '<p class="text-center text-slate-400 py-6">承認待ちのフォロー申請はありません</p>';
-        } else {
-          listEl.innerHTML = users.map(u => `
-            <div class="p-3 flex items-center justify-between">
-              <div class="flex items-center gap-2 cursor-pointer" onclick="openProfile('${encodeURIComponent(u.username)}')">
-                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
-                  ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
-                </div>
-                <div>
-                  <p class="font-bold text-slate-900">${u.display_name || u.username}</p>
-                  <p class="text-[10px] text-slate-400 font-mono">@${u.username}</p>
-                </div>
-              </div>
-              <div class="flex gap-1.5">
-                <button onclick="handleDecision('${encodeURIComponent(u.username)}', 'accept')" class="navy-btn text-[10px] font-bold px-2.5 py-1 rounded-lg">承認</button>
-                <button onclick="handleDecision('${encodeURIComponent(u.username)}', 'decline')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-lg">拒否</button>
-              </div>
-            </div>
-          `).join('');
-        }
+      const avatarEl = document.getElementById('profileAvatar');
+      if (user.avatar_url) {
+        avatarEl.style.backgroundImage = `url('${user.avatar_url}')`;
+        avatarEl.innerText = '';
+      } else {
+        avatarEl.style.backgroundImage = 'none';
+        avatarEl.innerText = (user.display_name || user.username).charAt(0).toUpperCase();
       }
-      document.getElementById('incomingRequestsModal').classList.remove('hidden');
-    };
-    window.closeIncomingRequestsModal = function() { document.getElementById('incomingRequestsModal').classList.add('hidden'); };
 
-    window.handleDecision = async function(rawUsername, action) {
-      const username = decodeURIComponent(rawUsername);
+      const coverEl = document.getElementById('profileCover');
+      coverEl.style.backgroundImage = user.cover_url ? `url('${user.cover_url}')` : 'none';
+
+      const act = document.getElementById('profileActionContainer');
+      if (currentUser && currentUser.username === user.username) {
+        act.innerHTML = `<button onclick="openEditProfile()" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">EDIT PROFILE</button>`;
+      } else {
+        act.innerHTML = `
+          <button onclick="toggleFollowUser('${user.username}')" class="navy-btn text-[10px] font-bold px-3 py-1 rounded-full">
+            ${user.is_following ? 'フォロー中' : 'フォロー'}
+          </button>
+          <button onclick="openDmChat('${user.username}')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span>✉️</span><span>DM</span>
+          </button>
+        `;
+      }
+
+      document.getElementById('profileModal').classList.remove('hidden');
+    };
+
+    window.closeProfileModal = function() { document.getElementById('profileModal').classList.add('hidden'); };
+
+    window.toggleFollowUser = async function(username) {
       const token = getToken();
-      const res = await fetch('/friends/decision', {
+      const res = await fetch(`/users/${username}/follow`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ target_username: username, action: action })
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.ok) { openIncomingRequestsModal(); loadStories(); if (currentUser) openProfile(currentUser.username); }
-    };
-
-    window.openOutgoingRequestsModal = async function() {
-      document.getElementById('profileDropdown').classList.add('hidden');
-      const token = getToken();
-      const res = await fetch('/friends/outgoing-requests', { headers: { 'Authorization': `Bearer ${token}` } });
-      const listEl = document.getElementById('outgoingRequestsList');
-
-      if (res.ok) {
-        const users = await res.json();
-        if (users.length === 0) {
-          listEl.innerHTML = '<p class="text-center text-slate-400 py-6">申請中のアカウントはありません</p>';
-        } else {
-          listEl.innerHTML = users.map(u => `
-            <div class="p-3 flex items-center justify-between">
-              <div class="flex items-center gap-2 cursor-pointer" onclick="openProfile('${encodeURIComponent(u.username)}')">
-                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
-                  ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
-                </div>
-                <div>
-                  <p class="font-bold text-slate-900">${u.display_name || u.username}</p>
-                  <p class="text-[10px] text-slate-400 font-mono">@${u.username}</p>
-                </div>
-              </div>
-              <button onclick="cancelOutgoingRequest('${encodeURIComponent(u.username)}')" class="text-[10px] font-bold text-slate-400 hover:text-rose-500">申請取消</button>
-            </div>
-          `).join('');
-        }
-      }
-      document.getElementById('outgoingRequestsModal').classList.remove('hidden');
-    };
-    window.closeOutgoingRequestsModal = function() { document.getElementById('outgoingRequestsModal').classList.add('hidden'); };
-
-    window.cancelOutgoingRequest = async function(rawUsername) {
-      const username = decodeURIComponent(rawUsername);
-      const token = getToken();
-      await fetch(`/users/${encodeURIComponent(username)}/follow`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-      openOutgoingRequestsModal();
+      if (res.ok) openProfile(username);
     };
 
     window.openEditProfile = function() {
@@ -1581,151 +1068,91 @@
       document.getElementById('editBio').value = currentUser.bio || '';
       document.getElementById('editProfileModal').classList.remove('hidden');
     };
+
     window.closeEditProfileModal = function() { document.getElementById('editProfileModal').classList.add('hidden'); };
 
-    document.getElementById('editProfileForm').addEventListener('submit', async (e) => {
+    document.getElementById('editProfileForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const token = getToken();
       const formData = new FormData(e.target);
-      const res = await fetch('/users/profile', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+      const res = await fetch('/users/profile', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
       if (res.ok) {
         currentUser = await res.json();
         renderAuthUI(currentUser);
         closeEditProfileModal();
         openProfile(currentUser.username);
-        loadStories();
         loadSpots();
+      }
+    });
+
+    window.openDmChat = async function(username) {
+      activeDmPartner = username;
+      closeProfileModal();
+      document.getElementById('dmPartnerTitle').innerText = `@${username} とのDM`;
+      document.getElementById('dmModal').classList.remove('hidden');
+      loadDmMessages();
+    };
+
+    window.closeDmModal = function() {
+      document.getElementById('dmModal').classList.add('hidden');
+      activeDmPartner = null;
+    };
+
+    async function loadDmMessages() {
+      if (!activeDmPartner) return;
+      const token = getToken();
+      const res = await fetch(`/messages/${activeDmPartner}`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) {
+        const msgs = await res.json();
+        const list = document.getElementById('dmMessageList');
+        list.innerHTML = msgs.map(m => {
+          const isMe = m.sender_username === currentUser.username;
+          return `
+            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+              <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
+                ${m.content}
+              </div>
+            </div>
+          `;
+        }).join('');
+        list.scrollTop = list.scrollHeight;
+      }
+    }
+
+    document.getElementById('dmSendForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('dmInput');
+      const content = input.value.trim();
+      if (!content || !activeDmPartner) return;
+
+      const token = getToken();
+      const res = await fetch('/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ recipient_username: activeDmPartner, content })
+      });
+      if (res.ok) {
+        input.value = '';
+        loadDmMessages();
       }
     });
 
     window.deleteSpot = async function(spotId) {
       if (!confirm('この思い出を削除しますか？')) return;
       const token = getToken();
-      const res = await fetch(`/spots/${spotId}`, { method: 'DELETE', headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
-      if (res.ok) loadSpots();
+      const res = await fetch(`/spots/${spotId}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res.ok) loadSpots(dateFilterEl.value);
     };
 
-    function initMap() {
-      map = L.map('pickerMap', { zoomControl: false }).setView([37.5665, 126.9780], 14);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-      currentMarker = L.marker([37.5665, 126.9780]).addTo(map);
-      map.on('click', (e) => setCoordinates(e.latlng.lat, e.latlng.lng));
-    }
-
-    function setCoordinates(lat, lng, zoom = null) {
-      currentMarker.setLatLng([lat, lng]);
-      if (zoom && map) map.setView([lat, lng], zoom);
-      document.getElementById('selectedLat').value = lat;
-      document.getElementById('selectedLng').value = lng;
-    }
-
-    function setInitialVisitedAt() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      document.getElementById('visitedAtInput').value = now.toISOString().slice(0, 16);
-    }
-
-    document.getElementById('openModalBtn').addEventListener('click', () => {
-      postModal.classList.remove('hidden');
-      setInitialVisitedAt();
-      if (!map) initMap();
-      setTimeout(() => { if (map) map.invalidateSize(); }, 150);
-    });
-
-    function closePostModal() {
-      if (document.getElementById('spotNameInput').value.trim() !== '' || document.getElementById('searchLocationInput').value.trim() !== '') {
-        if (!confirm('入力内容を破棄してキャンセルしますか？')) return;
-      }
-      formEl.reset();
-      document.getElementById('searchSuggestions').classList.add('hidden');
-      postModal.classList.add('hidden');
-    }
-    document.getElementById('cancelModalBtn').addEventListener('click', closePostModal);
-
-    const searchLocationInput = document.getElementById('searchLocationInput');
-    const searchLocationBtn = document.getElementById('searchLocationBtn');
-    const searchSuggestions = document.getElementById('searchSuggestions');
-    const spotNameInput = document.getElementById('spotNameInput');
-
-    function escapeQuotes(str) { return str.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
-
-    async function executePlaceSearch() {
-      const q = searchLocationInput.value.trim();
-      if (!q) return;
-
-      searchLocationBtn.innerText = '...';
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`);
-        const results = await res.json();
-
-        searchSuggestions.innerHTML = '';
-        if (results.length === 0) {
-          searchSuggestions.innerHTML = '<div class="p-3 text-slate-400">見つかりませんでした</div>';
-          searchSuggestions.classList.remove('hidden');
-          return;
-        }
-
-        const top = results[0];
-        setCoordinates(parseFloat(top.lat), parseFloat(top.lon), 16);
-        if (!spotNameInput.value) spotNameInput.value = q;
-
-        searchSuggestions.innerHTML = results.map(item => `
-          <div class="p-2.5 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between text-slate-700" onclick="selectSuggestion('${escapeQuotes(item.display_name)}', ${item.lat}, ${item.lon})">
-            <span class="truncate mr-2 font-medium">${item.display_name}</span>
-            <span class="text-slate-900 text-[10px] font-bold tracking-wider shrink-0">SELECT ↗</span>
-          </div>
-        `).join('');
-        searchSuggestions.classList.remove('hidden');
-      } catch (err) { console.error(err); } finally { searchLocationBtn.innerText = 'Search'; }
-    }
-
-    window.selectSuggestion = function(name, lat, lon) {
-      setCoordinates(parseFloat(lat), parseFloat(lon), 16);
-      const shortName = name.split(',')[0];
-      spotNameInput.value = shortName;
-      searchLocationInput.value = shortName;
-      searchSuggestions.classList.add('hidden');
-    };
-
-    searchLocationBtn.addEventListener('click', executePlaceSearch);
-    searchLocationInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); executePlaceSearch(); } });
-
-    // 投稿時の音楽URL・メモ自動合成処理
-    formEl.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const token = getToken();
-      const formData = new FormData(formEl);
-
-      const rawMemo = document.getElementById('memoInput').value.trim();
-      const songUrl = document.getElementById('songUrlInput').value.trim();
-      const songTitle = document.getElementById('songTitleInput').value.trim();
-
-      let combinedMemo = rawMemo;
-      if (songUrl) {
-        let musicHeader = '🎵 ' + (songTitle || 'TODAY\'S SONG');
-        combinedMemo = `${musicHeader}\n${songUrl}\n${rawMemo}`.trim();
-      }
-
-      formData.set('memo', combinedMemo);
-
-      try {
-        const res = await fetch('/spots/upload', {
-          method: 'POST',
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-          body: formData
-        });
-        if (res.ok) {
-          formEl.reset();
-          searchSuggestions.classList.add('hidden');
-          postModal.classList.add('hidden');
-          loadStories();
-          loadSpots();
-        } else {
-          const errData = await res.json();
-          alert(errData.detail || 'アップロードに失敗しました');
-        }
-      } catch (err) { alert('アップロード処理中にエラーが発生しました'); }
-    });
+    dateFilterEl?.addEventListener('change', (e) => loadSpots(e.target.value));
+    clearDateEl?.addEventListener('click', () => { dateFilterEl.value = ''; loadSpots(); });
 
     checkAuth();
   </script>
