@@ -1,6 +1,5 @@
 FROM python:3.11-slim
 
-# PostGIS / C言語系パッケージの依存をインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -16,7 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# アップロード用フォルダを確実に生成
 RUN mkdir -p static/uploads
 
 EXPOSE 8000
