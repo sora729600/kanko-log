@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Log - TRAVEL LOG</title>
+  <title>New Memory - TRAVEL LOG</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -16,123 +16,185 @@
   <style>
     :root {
       --tl-ink: #302a38;
-      --tl-paper: #fffaf7;
+      --tl-muted: #7a7180;
+      --tl-bg: #f5f2ee;
+      --tl-card-bg: #faf7f4;
+      --tl-section-bg: #eee9e3;
+      --tl-btn-primary: #b09e9e;
+      --tl-btn-primary-hover: #9c8a8a;
     }
     body {
       font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
       color: var(--tl-ink);
-      background: linear-gradient(145deg, #efeae7 0%, #e9e8e2 50%, #eee6e6 100%);
+      background-color: var(--tl-bg);
       min-height: 100vh;
     }
-    .navy-card {
-      background: var(--tl-paper);
-      border: 2px solid var(--tl-ink);
-      box-shadow: 4px 4px 0px rgba(48,42,56,.15);
+    .main-container {
+      background: var(--tl-card-bg);
+      border-radius: 32px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.03);
     }
-    .navy-input {
+    .custom-section {
+      background-color: var(--tl-section-bg);
+      border-radius: 24px;
+    }
+    .custom-input {
       background-color: #ffffff;
-      border: 1px solid #cbd5e1;
+      border: 1px solid #e2ddd7;
       color: var(--tl-ink);
+      border-radius: 16px;
       transition: all 0.2s;
     }
-    .navy-input:focus {
+    .custom-input:focus {
       border-color: var(--tl-ink);
-      box-shadow: 2px 2px 0px var(--tl-ink);
       outline: none;
+      box-shadow: 0 0 0 2px rgba(48,42,56,0.1);
     }
-    .navy-btn {
-      background-color: var(--tl-ink);
+    .btn-pill {
+      background-color: #ffffff;
+      color: var(--tl-ink);
+      border-radius: 9999px;
+      font-weight: 700;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .btn-pill:hover {
+      background-color: #f0ebe5;
+    }
+    .btn-submit {
+      background-color: var(--tl-btn-primary);
       color: #ffffff;
-      transition: all 0.15s ease;
+      border-radius: 16px;
+      font-weight: 700;
+      transition: all 0.2s;
     }
-    .navy-btn:hover {
-      background-color: #1e293b;
-      transform: translateY(-1px);
+    .btn-submit:hover {
+      background-color: var(--tl-btn-primary-hover);
     }
   </style>
 </head>
-<body class="p-4 sm:p-6">
+<body class="p-3 sm:p-6 flex justify-center items-center">
 
-  <div class="max-w-md mx-auto">
-    <!-- ヘッダー部分 -->
-    <div class="flex items-center justify-between mb-4">
-      <div>
-        <h1 class="text-base font-bold tracking-[0.18em] uppercase text-slate-900">NEW LOG</h1>
-        <p class="text-[10px] text-slate-500 font-medium">思い出を記録する</p>
+  <div class="main-container w-full max-w-xl p-5 sm:p-8 my-4">
+    
+    <!-- ヘッダーエリア -->
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-[#d3c8c8] flex items-center justify-center text-[10px]">🎵</span>
+        <span class="text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase">NEW MEMORY</span>
       </div>
-      <button onclick="window.location.href='/'" class="text-xs font-bold text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-full border border-slate-300 bg-white">
-        ✕ キャンセル
-      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="window.location.href='/'" class="btn-pill text-xs px-4 py-1.5 flex items-center gap-1">
+          <span>← ホームへ戻る</span>
+        </button>
+        <span class="btn-pill text-xs px-3 py-1.5 text-slate-400 flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-rose-400"></span> YouTube Music
+        </span>
+      </div>
     </div>
 
-    <!-- メインフォームカード -->
-    <div class="navy-card rounded-3xl p-5 sm:p-6">
-      <form id="postForm" class="space-y-4">
+    <!-- タイトル -->
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800 mb-1">
+      写真に「今日の1曲」を。
+    </h1>
+    <p class="text-xs text-slate-400 mb-6 font-medium">
+      その日の景色と音楽を、ひとつの思い出に。
+    </p>
 
-        <!-- 1. 場所検索 & マップピン留め -->
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">1. Spot Location (場所の検索)</label>
-          <div class="flex gap-2 mb-2">
-            <input type="text" id="searchLocationInput" class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="地名やスポット名を入力...">
-            <button type="button" id="searchLocationBtn" class="navy-btn font-semibold px-4 rounded-xl text-xs tracking-wider">Search</button>
+    <!-- フォーム本体 -->
+    <form id="postForm" class="space-y-6">
+
+      <!-- 1. 写真添付 -->
+      <div class="space-y-2">
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <span class="w-5 h-5 rounded-md bg-slate-200 flex items-center justify-center text-[10px]">🖼️</span>
+          <span>写真</span>
+        </div>
+        <div class="p-2 bg-white rounded-2xl border border-[#e2ddd7] flex items-center">
+          <input type="file" name="file" accept="image/*,video/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+        </div>
+      </div>
+
+      <!-- 2. スポット名 / タイトル -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-slate-700">スポット名 / タイトル</label>
+        <input type="text" id="spotNameInput" name="name" required class="w-full p-3.5 text-xs custom-input" placeholder="例：広安里海水浴場 / 釜山 DAY1">
+      </div>
+
+      <!-- 3. 場所を追加 (Map) -->
+      <div class="custom-section p-4 sm:p-5 space-y-3 relative overflow-hidden">
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[10px]">📍</span>
+          <span>場所を追加</span>
+        </div>
+
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <span class="absolute left-3.5 top-3 text-slate-400 text-xs">🔍</span>
+            <input type="text" id="searchLocationInput" class="w-full pl-9 pr-3 py-2.5 text-xs custom-input bg-white" placeholder="地名・観光地・施設名で検索">
           </div>
-          <div id="searchSuggestions" class="hidden mb-2 bg-white rounded-xl border border-slate-200 shadow-lg max-h-40 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
-          
-          <div id="pickerMap" class="w-full h-44 rounded-2xl border-2 border-slate-900 overflow-hidden"></div>
-          <input type="hidden" id="selectedLat" name="latitude" value="35.6812">
-          <input type="hidden" id="selectedLng" name="longitude" value="139.7671">
+          <button type="button" id="searchLocationBtn" class="btn-pill text-xs px-5 py-2.5">検索</button>
+          <button type="button" onclick="getCurrentLocation()" class="btn-pill text-xs px-4 py-2.5">現在地</button>
         </div>
 
-        <!-- 2. スポット名 -->
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">2. Spot Name (スポット名)</label>
-          <input type="text" id="spotNameInput" name="name" required class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="例: 東京タワー">
+        <p class="text-[10px] text-slate-400">場所を検索するか、地図をクリックしてピンを置いてください。</p>
+        
+        <div id="searchSuggestions" class="hidden bg-white rounded-xl border border-slate-200 shadow-md max-h-36 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
+
+        <div id="pickerMap" class="w-full h-48 rounded-2xl border border-white/60 overflow-hidden shadow-inner"></div>
+        <input type="hidden" id="selectedLat" name="latitude" value="35.6812">
+        <input type="hidden" id="selectedLng" name="longitude" value="139.7671">
+
+        <p id="locationStatusText" class="text-[10px] text-slate-400">場所はまだ選択されていません <span class="font-mono">緯度: -- 経度: --</span></p>
+      </div>
+
+      <!-- 4. ひとこと (メモ) -->
+      <div class="space-y-2">
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <span class="w-5 h-5 rounded-md bg-slate-200 flex items-center justify-center text-[10px]">💬</span>
+          <span>ひとこと</span>
+        </div>
+        <textarea id="memoInput" name="memo" rows="3" class="w-full p-3.5 text-xs custom-input" placeholder="今日の思い出を書いてみよう"></textarea>
+      </div>
+
+      <!-- 5. 音楽を追加 (YouTube検索) -->
+      <div class="custom-section p-4 sm:p-5 space-y-3 relative overflow-hidden">
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[10px]">🎵</span>
+          <span>音楽を追加</span>
         </div>
 
-        <!-- 3. 訪問日時 -->
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">3. Visited Date & Time (訪問日時)</label>
-          <input type="datetime-local" id="visitedAtInput" name="visited_at" class="w-full rounded-xl p-2.5 text-xs navy-input text-slate-800">
-        </div>
-
-        <!-- 4. 今日の1曲 (YouTube検索) -->
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">4. Today's Music (今日の1曲)</label>
-          <div class="flex gap-2">
-            <input type="text" id="musicSearchInput" class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="曲名やアーティスト名でYouTube検索...">
-            <button type="button" id="musicSearchBtn" class="navy-btn font-semibold px-4 rounded-xl text-xs tracking-wider">Search</button>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <span class="absolute left-3.5 top-3 text-slate-400 text-xs">🔍</span>
+            <input type="text" id="musicSearchInput" class="w-full pl-9 pr-3 py-2.5 text-xs custom-input bg-white" placeholder="曲名・アーティスト名で検索">
           </div>
-          <div id="musicResults" class="hidden mt-2 max-h-44 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl bg-white text-xs"></div>
-          <input type="hidden" id="selectedMusicUrl" name="music_url" value="">
-          <input type="hidden" id="selectedMusicTitle" name="music_title" value="">
-          
-          <div id="musicPreview" class="hidden mt-2 p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
-            <span id="musicPreviewTitle" class="font-bold text-indigo-950 truncate max-w-[220px]"></span>
-            <button type="button" onclick="clearMusicSelection()" class="text-rose-500 font-bold text-[10px]">削除 ✕</button>
-          </div>
+          <button type="button" id="musicSearchBtn" class="btn-pill text-xs px-6 py-2.5">検索</button>
         </div>
 
-        <!-- 5. メディア添付 -->
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">5. Photo / Video (写真・動画)</label>
-          <input type="file" name="file" accept="image/*,video/*" class="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-slate-300 file:text-xs file:font-semibold file:bg-slate-50 file:text-slate-800">
-        </div>
+        <p class="text-[10px] text-slate-400">YouTubeから曲やMVを検索して、この日の1曲として残せます。</p>
 
-        <!-- 6. メモ -->
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">6. Note (メモ)</label>
-          <textarea id="memoInput" name="memo" rows="3" class="w-full rounded-xl p-2.5 text-xs navy-input placeholder-slate-400" placeholder="感想や思い出のメモ..."></textarea>
-        </div>
+        <div id="musicResults" class="hidden max-h-40 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl bg-white text-xs"></div>
+        <input type="hidden" id="selectedMusicUrl" name="music_url" value="">
+        <input type="hidden" id="selectedMusicTitle" name="music_title" value="">
 
-        <!-- 送信ボタン -->
-        <div class="pt-2">
-          <button type="submit" id="submitBtn" class="w-full navy-btn font-bold py-3.5 rounded-xl text-xs tracking-[0.18em] uppercase shadow-md transition">
-            Post Log (思い出を投稿)
-          </button>
+        <div id="musicPreview" class="hidden p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+          <span id="musicPreviewTitle" class="font-bold text-slate-800 truncate max-w-[280px]"></span>
+          <button type="button" onclick="clearMusicSelection()" class="text-rose-500 font-bold text-[10px]">削除 ✕</button>
         </div>
+      </div>
 
-      </form>
-    </div>
+      <!-- 訪問日時 (隠しフィールド / 自動補完) -->
+      <input type="hidden" id="visitedAtInput" name="visited_at">
+
+      <!-- 投稿ボタン -->
+      <div class="pt-2">
+        <button type="submit" id="submitBtn" class="w-full btn-submit py-4 text-xs tracking-wider uppercase shadow-md flex items-center justify-center gap-2">
+          <span>⤓</span> <span>投稿する</span>
+        </button>
+      </div>
+
+    </form>
   </div>
 
   <script>
@@ -141,16 +203,14 @@
 
     function getToken() { return localStorage.getItem('access_token'); }
 
-    // 日時初期設定
     function setInitialVisitedAt() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       document.getElementById('visitedAtInput').value = now.toISOString().slice(0, 16);
     }
 
-    // 地図初期化
     function initMap() {
-      map = L.map('pickerMap', { zoomControl: false }).setView([35.6812, 139.7671], 14);
+      map = L.map('pickerMap', { zoomControl: true }).setView([35.6812, 139.7671], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
       currentMarker = L.marker([35.6812, 139.7671]).addTo(map);
 
@@ -164,6 +224,15 @@
       if (zoom && map) map.setView([lat, lng], zoom);
       document.getElementById('selectedLat').value = lat;
       document.getElementById('selectedLng').value = lng;
+      document.getElementById('locationStatusText').innerHTML = `選択中: <span class="font-mono">緯度: ${lat.toFixed(4)} 経度: ${lng.toFixed(4)}</span>`;
+    }
+
+    function getCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          setCoordinates(pos.coords.latitude, pos.coords.longitude, 15);
+        }, () => alert('現在地を取得できませんでした'));
+      }
     }
 
     // 場所検索
@@ -189,26 +258,26 @@
         }
 
         const top = results[0];
-        setCoordinates(parseFloat(top.lat), parseFloat(top.lon), 16);
+        setCoordinates(parseFloat(top.lat), parseFloat(top.lon), 15);
         if (!spotNameInput.value) spotNameInput.value = q;
 
         searchSuggestions.innerHTML = results.map(item => `
           <div class="p-2.5 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between text-slate-700" 
                onclick="selectSuggestion('${item.display_name.replace(/'/g, "\\'")}', ${item.lat}, ${item.lon})">
             <span class="truncate mr-2 font-medium">${item.display_name}</span>
-            <span class="text-slate-900 text-[10px] font-bold tracking-wider shrink-0">SELECT ↗</span>
+            <span class="text-slate-900 text-[10px] font-bold tracking-wider shrink-0">選択 ↗</span>
           </div>
         `).join('');
         searchSuggestions.classList.remove('hidden');
       } catch (err) {
         console.error(err);
       } finally {
-        searchLocationBtn.innerText = 'Search';
+        searchLocationBtn.innerText = '検索';
       }
     }
 
     window.selectSuggestion = function(name, lat, lon) {
-      setCoordinates(parseFloat(lat), parseFloat(lon), 16);
+      setCoordinates(parseFloat(lat), parseFloat(lon), 15);
       const shortName = name.split(',')[0];
       spotNameInput.value = shortName;
       searchLocationInput.value = shortName;
@@ -234,7 +303,6 @@
         const res = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`);
         const text = await res.text();
         
-        // 簡易的なHTMLパース処理（VideoID抽出）
         const matches = [...text.matchAll(/"videoId":"([A-Za-z0-9_-]{11})".*?"title":{"runs":\[{"text":"(.*?)"\}\]}/g)];
         
         if (matches.length === 0) {
@@ -256,14 +324,14 @@
           <div class="p-2.5 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between text-slate-700"
                onclick="selectMusic('${item.id}', '${item.title.replace(/'/g, "\\'")}')">
             <span class="truncate mr-2 font-medium">${item.title}</span>
-            <span class="text-indigo-600 text-[10px] font-bold tracking-wider shrink-0">SELECT 🎵</span>
+            <span class="text-indigo-600 text-[10px] font-bold tracking-wider shrink-0">選択 🎵</span>
           </div>
         `).join('');
         musicResults.classList.remove('hidden');
       } catch (err) {
         alert('音楽検索に失敗しました');
       } finally {
-        musicSearchBtn.innerText = 'Search';
+        musicSearchBtn.innerText = '検索';
       }
     }
 
@@ -287,7 +355,7 @@
       if (e.key === 'Enter') { e.preventDefault(); executeMusicSearch(); }
     });
 
-    // フォーム送信処理
+    // フォーム送信
     document.getElementById('postForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const token = getToken();
@@ -299,11 +367,10 @@
 
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.innerText = 'Uploading...';
+      submitBtn.innerText = '投稿中...';
 
       const formData = new FormData(e.target);
 
-      // 音楽情報をメモ（memo）の末尾へ追加統合
       const musicUrl = document.getElementById('selectedMusicUrl').value;
       const musicTitle = document.getElementById('selectedMusicTitle').value;
       if (musicUrl && musicTitle) {
@@ -329,7 +396,7 @@
         alert('通信エラーが発生しました');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.innerText = 'Post Log (思い出を投稿)';
+        submitBtn.innerText = '投稿する';
       }
     });
 
