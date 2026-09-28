@@ -3,69 +3,76 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Photo Diary + YouTube Music</title>
-  
-  <!-- Leaflet (地図用) -->
+  <title>Photo Diary | 今日の1曲</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <style>
-    :root {
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #171717;
-      background: #f5f5f3;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; }
-    body.modal-open { overflow: hidden; }
-    button, input, textarea { font: inherit; }
-    button { cursor: pointer; }
-    button:disabled { cursor: wait; opacity: .65; }
-    .shell { width: min(760px, calc(100% - 28px)); margin: 38px auto 80px; display: grid; gap: 34px; }
-    .card { background: rgba(255,255,255,.92); border: 1px solid #e7e7e3; border-radius: 24px; padding: 24px; box-shadow: 0 18px 50px rgba(0,0,0,.05); }
-    .headline, .feed-title, .music-box-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    h1, h2, p { margin-top: 0; }
-    h1 { margin-bottom: 0; font-size: clamp(24px, 5vw, 38px); letter-spacing: -0.04em; }
-    h2 { margin-bottom: 0; }
-    .eyebrow { margin-bottom: 7px; font-size: 11px; letter-spacing: .18em; color: #7d7d78; font-weight: 800; }
-    .pill { padding: 8px 10px; border-radius: 999px; background: #191919; color: #fff; font-size: 12px; white-space: nowrap; text-decoration: none; }
-    #postForm { display: grid; gap: 18px; margin-top: 24px; }
-    .field { display: grid; gap: 8px; font-size: 14px; font-weight: 700; }
-    input, textarea { width: 100%; border: 1px solid #dcdcd6; background: #fff; border-radius: 14px; padding: 13px 14px; outline: none; }
-    input:focus, textarea:focus { border-color: #8a8a84; box-shadow: 0 0 0 3px rgba(0,0,0,.04); }
-    textarea { resize: vertical; }
-    .preview-wrap, .post-image-wrap { position: relative; overflow: hidden; border-radius: 20px; background: #ecece8; }
-    .preview-wrap > img, .post-image { display: block; width: 100%; aspect-ratio: 4/5; object-fit: cover; }
-    .music-box { border: 1px solid #e3e3de; background: #fafaf8; border-radius: 18px; padding: 16px; }
-    .search-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
-    .primary, .secondary { border: 0; border-radius: 14px; padding: 13px 16px; font-weight: 800; }
-    .primary { background: #171717; color: #fff; }
-    .secondary { background: #eaeae6; color: #171717; }
-    .text-button { border: 0; background: transparent; color: #666; font-size: 12px; }
-    .muted { color: #777; font-size: 13px; margin: 12px 0 0; line-height: 1.55; }
-    .music-results { display: grid; gap: 8px; margin-top: 12px; max-height: 390px; overflow: auto; }
-    .track { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 11px; padding: 9px; border: 1px solid #e4e4df; background: #fff; border-radius: 14px; }
-    .track > img, .thumb-placeholder { width: 92px; height: 52px; object-fit: cover; border-radius: 9px; background: #eee; }
-    .track-meta { min-width: 0; }
-    .track-title { font-weight: 800; font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .track-artist { margin-top: 3px; font-size: 12px; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .track-link { display: inline-block; margin-top: 5px; color: #555; font-size: 11px; text-decoration: underline; text-underline-offset: 2px; }
-    .track button { border: 0; background: #171717; color: #fff; border-radius: 10px; padding: 9px 11px; white-space: nowrap; }
-    .music-overlay { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 15px; background: rgba(18,18,18,.78); backdrop-filter: blur(10px); color: #fff; text-decoration: none; box-shadow: 0 8px 28px rgba(0,0,0,.22); }
-    .music-overlay img { width: 62px; height: 35px; object-fit: cover; border-radius: 7px; flex: 0 0 auto; }
-    .music-overlay .meta { min-width: 0; display: block; text-align: left; }
-    .music-overlay .title { display: block; font-weight: 800; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .music-overlay .artist { display: block; color: rgba(255,255,255,.75); font-size: 11px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hidden { display: none !important; }
-    @media (max-width: 560px) {
-      .shell { width: min(100% - 18px, 760px); margin-top: 14px; }
-      .card { padding: 18px; border-radius: 20px; }
-      .headline { align-items: flex-start; }
-      .pill { display: none; }
-      .track { grid-template-columns: 82px 1fr; }
-      .track > img, .thumb-placeholder { width: 82px; height: 46px; }
-      .track button { grid-column: 1 / -1; }
-    }
+:root {
+  font-family: Inter, "Noto Sans JP", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #3f3a40;
+  background: #eee9e5;
+  --ink: #3f3a40;
+  --paper: rgba(255, 252, 249, .76);
+  --gradient: linear-gradient(135deg, #a99ab6 0%, #9daea3 48%, #c4a0a5 100%);
+  --shadow: 0 24px 70px rgba(84, 72, 80, .12);
+}
+* { box-sizing: border-box; }
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(145deg, #efeae7 0%, #e9e8e2 48%, #eee6e6 100%);
+  color: var(--ink);
+}
+.shell { width: min(780px, calc(100% - 32px)); margin: 44px auto 86px; display: grid; gap: 40px; }
+.card {
+  border: 1px solid rgba(255,255,255,.64);
+  background: var(--paper);
+  backdrop-filter: blur(22px);
+  box-shadow: var(--shadow);
+  border-radius: 32px;
+  padding: 30px;
+}
+.headline { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+h1 { margin: 4px 0 0; font-size: clamp(28px, 5vw, 42px); color: #373238; }
+.lead { margin: 10px 0 0; color: #80767c; font-size: 14px; }
+.eyebrow { margin: 0; color: #867a82; font-size: 10px; font-weight: 900; letter-spacing: .21em; }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px;
+  border-radius: 999px; background: rgba(255,255,255,.48); color: #655d63;
+  font-size: 11px; font-weight: 800; text-decoration: none;
+}
+#postForm { display: grid; gap: 19px; margin-top: 26px; }
+.field { display: grid; gap: 9px; font-size: 13px; font-weight: 800; color: #5b5258; }
+input, textarea {
+  width: 100%; border: 1px solid rgba(111, 98, 106, .16); background: rgba(255,255,255,.67);
+  color: var(--ink); border-radius: 17px; padding: 14px 15px; outline: none;
+}
+textarea { min-height: 98px; resize: vertical; }
+.preview-wrap {
+  position: relative; overflow: hidden; border-radius: 25px; background: #ded8dd;
+}
+.preview-wrap > img { display: block; width: 100%; aspect-ratio: 4/5; object-fit: cover; }
+.music-box, .location-box {
+  border: 1px solid rgba(126, 110, 120, .12); border-radius: 24px; padding: 18px;
+  background: rgba(255,255,255,.48);
+}
+.search-row, .location-search-row { display: grid; grid-template-columns: 1fr auto auto; gap: 9px; margin-top: 14px; }
+.primary, .secondary { border: 0; border-radius: 16px; padding: 13px 17px; font-weight: 900; }
+.primary { background: var(--gradient); color: #fff; min-height: 52px; width: 100%; }
+.secondary { background: rgba(255,255,255,.62); color: #5f565c; }
+.music-results, .location-results { display: grid; gap: 9px; margin-top: 13px; max-height: 250px; overflow: auto; }
+.track {
+  display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 12px;
+  padding: 10px; background: rgba(255,255,255,.66); border-radius: 17px;
+}
+.track > img { width: 92px; height: 52px; object-fit: cover; border-radius: 11px; }
+.track button { border: 0; border-radius: 12px; padding: 9px 11px; background: var(--gradient); color: #fff; font-weight: 900; }
+.music-overlay {
+  position: absolute; left: 15px; right: 15px; bottom: 15px; display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 18px; background: rgba(87,70,88,.75); backdrop-filter: blur(17px); color: #fff;
+}
+.music-overlay img { width: 62px; height: 35px; object-fit: cover; border-radius: 9px; }
+#travelMap { width: 100%; height: 260px; margin-top: 13px; border-radius: 20px; overflow: hidden; }
+.hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -75,61 +82,60 @@
         <div>
           <p class="eyebrow">NEW MEMORY</p>
           <h1>写真に「今日の1曲」を。</h1>
+          <p class="lead">その日の景色と音楽を、ひとつの思い出に。</p>
         </div>
         <a href="/" class="pill">← ホームへ戻る</a>
       </div>
 
       <form id="postForm">
-        <!-- 写真選択 -->
+        <!-- 1. 写真選択 -->
         <label class="field">
           <span>写真</span>
           <input id="image" name="file" type="file" accept="image/*,video/*" required />
         </label>
 
-        <!-- プレビュー＆オーバーレイ -->
+        <!-- プレビュー＆黒い音楽カード -->
         <div id="previewWrap" class="preview-wrap hidden">
           <img id="imagePreview" alt="投稿画像プレビュー" />
           <div id="musicOverlay" class="music-overlay hidden"></div>
         </div>
 
-        <!-- スポット名 -->
+        <!-- 2. スポット名 -->
         <label class="field">
           <span>スポット名 / タイトル</span>
-          <input id="spotName" name="name" type="text" placeholder="例：広安里海水浴場 / 釜山 DAY1" required />
+          <input id="travelSpotName" name="name" type="text" placeholder="例：広安里海水浴場 / 釜山 DAY1" required />
         </label>
 
-        <!-- 地図・場所追加 -->
-        <div class="field">
-          <span>場所を追加</span>
-          <div class="search-row" style="margin-top:0;">
-            <input id="locationQuery" type="text" placeholder="地名・観光地名で検索" />
+        <!-- 3. 場所を追加 (Map) -->
+        <div class="location-box">
+          <strong class="section-label">📍 場所を追加</strong>
+          <div class="location-search-row">
+            <input id="locationQuery" type="search" placeholder="地名・観光地・施設名で検索" />
             <button type="button" id="searchLocation" class="secondary">検索</button>
+            <button type="button" id="useCurrentLocation" class="secondary">現在地</button>
           </div>
-          <div id="pickerMap" style="width:100%; height:200px; border-radius:14px; margin-top:6px; border:1px solid #dcdcd6;"></div>
-          <input type="hidden" id="selectedLat" name="latitude" value="35.6812" />
-          <input type="hidden" id="selectedLng" name="longitude" value="139.7671" />
+          <div id="locationResults" class="location-results"></div>
+          <div id="travelMap"></div>
+          <p id="locationStatus" class="muted" style="margin-top:8px; font-size:11px;">ピンを立てて場所を選択してください。</p>
         </div>
 
-        <!-- ひとこと -->
+        <!-- 4. ひとこと -->
         <label class="field">
           <span>ひとこと</span>
           <textarea name="memo" rows="3" placeholder="今日の思い出を書いてみよう"></textarea>
         </label>
 
-        <!-- 訪問日時（自動補完） -->
-        <input type="hidden" id="visitedAt" name="visited_at" />
-
-        <!-- 音楽追加（YouTube API連動） -->
+        <!-- 5. 音楽を追加 (YouTube API連動) -->
         <div class="music-box">
-          <div class="music-box-title">
+          <div class="headline">
             <strong>🎵 音楽を追加</strong>
-            <button type="button" id="clearMusic" class="text-button hidden">選択解除</button>
+            <button type="button" id="clearMusic" class="secondary hidden" style="padding:4px 8px; font-size:11px;">選択解除</button>
           </div>
           <div class="search-row">
-            <input id="musicQuery" type="search" placeholder="曲名・アーティスト名でYouTube検索" />
+            <input id="musicQuery" type="search" placeholder="曲名・アーティスト名で検索" />
             <button type="button" id="searchMusic" class="secondary">検索</button>
           </div>
-          <p id="musicMessage" class="muted">YouTubeから曲やMVを検索して、この日の1曲として残せます。</p>
+          <p id="musicMessage" class="muted" style="font-size:12px; margin-top:8px;">YouTubeから曲やMVを検索して、この日の1曲として残せます。</p>
           <div id="musicResults" class="music-results"></div>
         </div>
 
@@ -138,6 +144,7 @@
     </section>
   </main>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const postForm = document.getElementById("postForm");
     const imageInput = document.getElementById("image");
@@ -152,16 +159,17 @@
 
     let selectedVideo = null;
     let currentPreviewUrl = null;
-    let map = null;
-    let currentMarker = null;
+    let travelMap = null;
+    let travelMarker = null;
+    let selectedLatitude = 35.6812;
+    let selectedLongitude = 139.7671;
 
     function getToken() { return localStorage.getItem("access_token"); }
 
-    // プレビュー表示
+    // 画像プレビュー
     imageInput.addEventListener("change", () => {
       const file = imageInput.files?.[0];
       if (!file) return;
-
       if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
       currentPreviewUrl = URL.createObjectURL(file);
       imagePreview.src = currentPreviewUrl;
@@ -169,184 +177,141 @@
       renderSelectedMusic();
     });
 
-    // YouTube 検索 (API: /api/music/search)
-    searchMusicButton.addEventListener("click", searchMusic);
-    musicQuery.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        searchMusic();
+    // 地図初期化
+    function initMap() {
+      travelMap = L.map("travelMap").setView([selectedLatitude, selectedLongitude], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(travelMap);
+      travelMarker = L.marker([selectedLatitude, selectedLongitude], { draggable: true }).addTo(travelMap);
+
+      travelMap.on("click", (e) => setCoordinates(e.latlng.lat, e.latlng.lng));
+      travelMarker.on("dragend", () => {
+        const pos = travelMarker.getLatLng();
+        setCoordinates(pos.lat, pos.lng);
+      });
+    }
+
+    function setCoordinates(lat, lng) {
+      selectedLatitude = lat;
+      selectedLongitude = lng;
+      travelMarker.setLatLng([lat, lng]);
+      document.getElementById("locationStatus").textContent = `選択中: 緯度 ${lat.toFixed(4)}, 経度 ${lng.toFixed(4)}`;
+    }
+
+    document.getElementById("searchLocation").addEventListener("click", async () => {
+      const q = document.getElementById("locationQuery").value.trim();
+      if (!q) return;
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`);
+      const data = await res.json();
+      if (data.length > 0) {
+        setCoordinates(parseFloat(data[0].lat), parseFloat(data[0].lon));
+        travelMap.setView([data[0].lat, data[0].lon], 15);
       }
     });
 
-    clearMusicButton.addEventListener("click", () => {
-      selectedVideo = null;
-      clearMusicButton.classList.add("hidden");
-      musicMessage.textContent = "音楽の選択を解除しました。";
-      renderSelectedMusic();
+    document.getElementById("useCurrentLocation").addEventListener("click", () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((p) => {
+          setCoordinates(p.coords.latitude, p.coords.longitude);
+          travelMap.setView([p.coords.latitude, p.coords.longitude], 15);
+        });
+      }
     });
 
+    // YouTube検索 API (/api/music/search)
+    searchMusicButton.addEventListener("click", searchMusic);
     async function searchMusic() {
       const q = musicQuery.value.trim();
-      if (!q) {
-        musicMessage.textContent = "曲名かアーティスト名を入力してください。";
-        return;
-      }
-
+      if (!q) return;
       searchMusicButton.disabled = true;
       musicMessage.textContent = "YouTubeで検索中...";
       musicResults.innerHTML = "";
 
       try {
-        const response = await fetch(`/api/music/search?q=${encodeURIComponent(q)}&limit=10`);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.detail || "検索に失敗しました。");
+        const res = await fetch(`/api/music/search?q=${encodeURIComponent(q)}&limit=10`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "検索失敗");
 
-        musicMessage.textContent = data.items.length
-          ? `${data.items.length}件見つかりました。動画を確認して1曲選んでください。`
-          : "見つかりませんでした。別の曲名やアーティスト名で試してください。";
-
+        musicMessage.textContent = `${data.items.length}件見つかりました。`;
         data.items.forEach((video) => {
           const row = document.createElement("div");
           row.className = "track";
           row.innerHTML = `
-            ${video.cover_url ? `<img src="${escapeHtml(video.cover_url)}" alt="">` : `<div class="thumb-placeholder"></div>`}
-            <div class="track-meta">
-              <div class="track-title">${escapeHtml(video.title || "")}</div>
-              <div class="track-artist">${escapeHtml(video.artist || "")}</div>
-              <a class="track-link" href="${escapeHtml(video.external_url || "#")}" target="_blank" rel="noopener noreferrer">YouTubeで確認 ↗</a>
+            <img src="${video.cover_url || ''}" alt="">
+            <div>
+              <div style="font-bold text-xs">${video.title || ''}</div>
+              <div style="text-xs color:#777">${video.artist || ''}</div>
             </div>
-            <button type="button">この曲を選ぶ</button>
+            <button type="button">選ぶ</button>
           `;
           row.querySelector("button").addEventListener("click", () => {
             selectedVideo = video;
-            musicMessage.textContent = `選択中：${decodeEntities(video.title || "")} — ${decodeEntities(video.artist || "")}`;
             clearMusicButton.classList.remove("hidden");
             renderSelectedMusic();
           });
           musicResults.appendChild(row);
         });
-      } catch (error) {
-        musicMessage.textContent = error.message;
+      } catch (e) {
+        musicMessage.textContent = e.message;
       } finally {
         searchMusicButton.disabled = false;
       }
     }
 
+    clearMusicButton.addEventListener("click", () => {
+      selectedVideo = null;
+      clearMusicButton.classList.add("hidden");
+      renderSelectedMusic();
+    });
+
     function renderSelectedMusic() {
       if (!selectedVideo || previewWrap.classList.contains("hidden")) {
         musicOverlay.classList.add("hidden");
-        musicOverlay.innerHTML = "";
         return;
       }
-
       musicOverlay.classList.remove("hidden");
       musicOverlay.innerHTML = `
-        ${selectedVideo.cover_url ? `<img src="${escapeHtml(selectedVideo.cover_url)}" alt="">` : ""}
-        <div class="meta">
-          <div class="title">▶ ${escapeHtml(decodeEntities(selectedVideo.title || ""))}</div>
-          <div class="artist">${escapeHtml(decodeEntities(selectedVideo.artist || ""))} · YouTube</div>
+        ${selectedVideo.cover_url ? `<img src="${selectedVideo.cover_url}">` : ''}
+        <div>
+          <div style="font-weight:800; font-size:12px;">▶ ${selectedVideo.title}</div>
+          <div style="font-size:10px; opacity:0.8">${selectedVideo.artist} · YouTube</div>
         </div>
       `;
     }
 
-    // 地図初期化
-    function initMap() {
-      map = L.map('pickerMap', { zoomControl: true }).setView([35.6812, 139.7671], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-      currentMarker = L.marker([35.6812, 139.7671]).addTo(map);
-
-      map.on('click', (e) => {
-        setCoordinates(e.latlng.lat, e.latlng.lng);
-      });
-    }
-
-    function setCoordinates(lat, lng, zoom = null) {
-      currentMarker.setLatLng([lat, lng]);
-      if (zoom && map) map.setView([lat, lng], zoom);
-      document.getElementById('selectedLat').value = lat;
-      document.getElementById('selectedLng').value = lng;
-    }
-
-    document.getElementById('searchLocation').addEventListener('click', async () => {
-      const q = document.getElementById('locationQuery').value.trim();
-      if (!q) return;
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`);
-        const data = await res.json();
-        if (data.length > 0) {
-          setCoordinates(parseFloat(data[0].lat), parseFloat(data[0].lon), 15);
-        }
-      } catch (e) {}
-    });
-
-    // フォーム送信
-    postForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
+    // 送信
+    postForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
       const token = getToken();
-      if (!token) {
-        alert("ログインが必要です");
-        window.location.href = "/";
-        return;
+      if (!token) { alert("ログインしてください"); return; }
+
+      const formData = new FormData(postForm);
+      formData.append("latitude", String(selectedLatitude));
+      formData.append("longitude", String(selectedLongitude));
+      
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      formData.append("visited_at", now.toISOString());
+
+      if (selectedVideo) {
+        formData.append("youtube_video_id", selectedVideo.youtube_video_id || "");
+        let memo = formData.get("memo") || "";
+        formData.set("memo", memo + `\n\n🎵 ${selectedVideo.title}\nhttps://www.youtube.com/watch?v=${selectedVideo.youtube_video_id}`);
       }
 
-      const submitButton = postForm.querySelector('button[type="submit"]');
-      submitButton.disabled = true;
-      submitButton.textContent = "投稿中...";
+      const res = await fetch("/spots/upload", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData
+      });
 
-      try {
-        const formData = new FormData(postForm);
-        
-        // 日時補完
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        formData.set("visited_at", now.toISOString().slice(0, 16));
-
-        // 音楽選択がある場合、API用パラメータおよびmemo末尾への情報追加を行う
-        if (selectedVideo) {
-          formData.append("youtube_video_id", selectedVideo.youtube_video_id || "");
-          let currentMemo = formData.get("memo") || "";
-          const musicBlock = `\n\n🎵 ${selectedVideo.title}\nhttps://www.youtube.com/watch?v=${selectedVideo.youtube_video_id}`;
-          formData.set("memo", currentMemo + musicBlock);
-        }
-
-        const response = await fetch("/spots/upload", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${token}` },
-          body: formData
-        });
-
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.detail || "投稿に失敗しました。");
-        }
-
+      if (res.ok) {
         window.location.href = "/";
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = "投稿する";
+      } else {
+        alert("投稿に失敗しました");
       }
     });
 
-    function decodeEntities(value) {
-      const textarea = document.createElement("textarea");
-      textarea.innerHTML = String(value ?? "");
-      return textarea.value;
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      initMap();
-    });
+    window.addEventListener("DOMContentLoaded", initMap);
   </script>
 </body>
 </html>
