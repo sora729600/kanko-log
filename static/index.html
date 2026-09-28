@@ -75,13 +75,6 @@
       border: 1px dashed var(--tl-ink);
       letter-spacing: 0.15em;
     }
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
 
     /* 音楽プレイヤー用スタイル */
     .home-song-card {
@@ -293,6 +286,13 @@
           </svg>
         </button>
 
+        <button onclick="openNotificationsModal()" class="text-slate-700 hover:text-slate-950 p-1 transition relative" title="通知">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span id="notifBadge" class="hidden absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+        </button>
+
         <button onclick="openConversationsModal()" class="text-slate-700 hover:text-slate-950 p-1 transition relative" title="メッセージ">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -301,10 +301,10 @@
 
         <div id="authStatusContainer"></div>
 
-        <!-- 投稿ボタン：パートナー様の add.html へ移動するリンク -->
-        <a href="/static/add.html" id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm font-mono" title="新しい思い出を記録">
+        <!-- 修正：ボタンクリックで確実に add.html に移動する記述 -->
+        <button onclick="window.location.href='/static/add.html'" id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm font-mono cursor-pointer" title="新しい思い出を記録">
           <span>+</span>
-        </a>
+        </button>
       </div>
     </header>
 
@@ -331,8 +331,19 @@
       </div>
     </main>
 
+    <!-- 通知モーダル -->
+    <div id="notificationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeNotificationsModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Notifications</h2>
+          <button onclick="closeNotificationsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="notificationsList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
+      </div>
+    </div>
+
     <!-- ユーザーID検索モーダル -->
-    <div id="userSearchModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="userSearchModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeUserSearchModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Search Users</h2>
@@ -352,7 +363,7 @@
     </div>
 
     <!-- プロフィールモーダル -->
-    <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="profileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeProfileModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden">
         
         <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-900">
@@ -386,11 +397,11 @@
           </div>
 
           <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
-            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm">
+            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition" onclick="openUserListModal('following')">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Following</span>
               <span id="profileFollowingCount" class="text-sm font-black text-slate-900">0</span>
             </div>
-            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm">
+            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition" onclick="openUserListModal('followers')">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Followers</span>
               <span id="profileFollowersCount" class="text-sm font-black text-slate-900">0</span>
             </div>
@@ -399,8 +410,21 @@
       </div>
     </div>
 
+    <!-- ユーザー一覧モーダル（フォロー/フォロワー用） -->
+    <div id="userListModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeUserListModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 id="userListModalTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">USERS</h2>
+          <button onclick="closeUserListModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="userListContent" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
+          <p class="text-center text-slate-400 py-6">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- プロフィール編集モーダル -->
-    <div id="editProfileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="editProfileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeEditProfileModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">Edit Profile</h2>
@@ -431,7 +455,7 @@
     </div>
 
     <!-- DM 会話一覧モーダル -->
-    <div id="conversationsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="conversationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeConversationsModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Messages</h2>
@@ -444,7 +468,7 @@
     </div>
 
     <!-- DM チャットモーダル -->
-    <div id="dmModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="dmModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeDmModal)">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl h-[520px] flex flex-col shadow-2xl overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-900 flex items-center justify-between bg-slate-50">
           <div class="flex items-center gap-2">
@@ -468,12 +492,19 @@
     let currentFeedTab = 'all';
     let currentUser = null;
     let activeDmPartner = null;
+    let currentProfileUsername = null;
 
     const landingView = document.getElementById('landingView');
     const appView = document.getElementById('appView');
     const feedEl = document.getElementById('feed');
     const dateFilterEl = document.getElementById('dateFilter');
     const clearDateEl = document.getElementById('clearDate');
+
+    function handleBackdropClick(e, closeFunc) {
+      if (e.target.classList.contains('modal-overlay')) {
+        closeFunc();
+      }
+    }
 
     function getToken() { return localStorage.getItem('access_token'); }
     function setToken(t) { localStorage.setItem('access_token', t); }
@@ -502,6 +533,7 @@
           currentUser = await res.json();
           updateViewState(true);
           renderAuthUI(currentUser);
+          loadNotifications();
           loadSpots();
         } else {
           removeToken();
@@ -513,6 +545,57 @@
         renderAuthUI(null);
       }
     }
+
+    async function loadNotifications() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch('/notifications', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          const notifs = await res.json();
+          const hasUnread = notifs.some(n => !n.is_read);
+          const badge = document.getElementById('notifBadge');
+          if (badge) {
+            if (hasUnread) badge.classList.remove('hidden'); else badge.classList.add('hidden');
+          }
+
+          const listEl = document.getElementById('notificationsList');
+          if (listEl) {
+            if (notifs.length === 0) {
+              listEl.innerHTML = '<p class="text-center text-slate-400 py-6">新しい通知はありません</p>';
+            } else {
+              listEl.innerHTML = notifs.map(n => {
+                const d = new Date(n.created_at);
+                const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleString();
+                return `
+                  <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
+                      ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs text-slate-800 font-medium">${n.message}</p>
+                      <span class="text-[9px] text-slate-400 font-mono">${timeStr}</span>
+                    </div>
+                  </div>
+                `;
+              }).join('');
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    window.openNotificationsModal = async function() {
+      document.getElementById('notificationsModal').classList.remove('hidden');
+      const token = getToken();
+      if (token) {
+        await fetch('/notifications/read', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.classList.add('hidden');
+      }
+    };
+    window.closeNotificationsModal = function() { document.getElementById('notificationsModal').classList.add('hidden'); };
 
     function renderAuthUI(user) {
       const c = document.getElementById('authStatusContainer');
@@ -651,6 +734,7 @@
       renderAuthUI(currentUser);
       gateAuthForm.reset();
       setGateStatus('');
+      loadNotifications();
       loadSpots();
     }
 
@@ -779,6 +863,47 @@
       document.getElementById('conversationsModal').classList.remove('hidden');
     };
     window.closeConversationsModal = function() { document.getElementById('conversationsModal').classList.add('hidden'); };
+
+    window.openUserListModal = async function(type) {
+      if (!currentProfileUsername) return;
+      const titleEl = document.getElementById('userListModalTitle');
+      const contentEl = document.getElementById('userListContent');
+      
+      titleEl.innerText = type === 'following' ? 'FOLLOWING' : 'FOLLOWERS';
+      contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">読み込み中...</p>';
+      document.getElementById('userListModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/users/${encodeURIComponent(currentProfileUsername)}/${type}`);
+        if (!res.ok) {
+          contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">一覧を取得できませんでした</p>';
+          return;
+        }
+        const users = await res.json();
+        if (users.length === 0) {
+          contentEl.innerHTML = `<p class="text-center text-slate-400 py-6">${type === 'following' ? 'フォロー中のユーザーはいません' : 'フォロワーはいません'}</p>`;
+          return;
+        }
+
+        contentEl.innerHTML = users.map(u => `
+          <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); closeProfileModal(); openProfile('${encodeURIComponent(u.username)}');">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
+              </div>
+              <div>
+                <p class="font-bold text-slate-900 leading-none">${u.display_name || u.username}</p>
+                <p class="text-[10px] text-slate-400 font-mono mt-0.5">@${u.username}</p>
+              </div>
+            </div>
+            <span class="text-[10px] text-slate-800 font-bold">VIEW ↗</span>
+          </div>
+        `).join('');
+      } catch (e) {
+        contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">エラーが発生しました</p>';
+      }
+    };
+    window.closeUserListModal = function() { document.getElementById('userListModal').classList.add('hidden'); };
 
     window.switchFeedTab = function(tab) {
       currentFeedTab = tab;
@@ -1009,6 +1134,7 @@
     };
 
     window.openProfile = async function(username) {
+      currentProfileUsername = username;
       const token = getToken();
       const res = await fetch(`/users/${username}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
