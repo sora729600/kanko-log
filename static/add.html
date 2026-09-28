@@ -1,1223 +1,1291 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#eee7e6" />
-  <title>Photo Diary | 今日の1曲</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TRAVEL LOG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
   <style>
-:root {
-  font-family: Inter, "Noto Sans JP", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #3f3a40;
-  background: #eee9e5;
-  --ink: #3f3a40;
-  --ink-soft: #756d73;
-  --line: rgba(103, 91, 99, .14);
-  --paper: rgba(255, 252, 249, .76);
-  --paper-strong: rgba(255, 253, 251, .94);
-  --lavender: #a99ab6;
-  --sage: #9daea3;
-  --rose: #c3a0a4;
-  --sand: #c8b39d;
-  --mist: #b6b8c6;
-  --gradient: linear-gradient(135deg, #a99ab6 0%, #9daea3 48%, #c4a0a5 100%);
-  --gradient-soft: linear-gradient(135deg, rgba(169,154,182,.22), rgba(157,174,163,.20), rgba(196,160,165,.24));
-  --shadow: 0 24px 70px rgba(84, 72, 80, .12);
-}
+    :root {
+      --tl-ink: #302a38;
+      --tl-muted: #7a7180;
+      --tl-paper: #fffaf7;
+      --tl-lav: #b8a8c8;
+      --tl-sage: #adbea9;
+      --tl-rose: #cba8b1;
+      --tl-soft-lav: #eee5f0;
+      --tl-soft-sage: #e2ebe0;
+      --tl-soft-rose: #f0e0e4;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+      color: var(--tl-ink);
+      background: radial-gradient(circle at 8% 5%,rgba(190,172,193,.44) 0,rgba(190,172,193,0) 32%),
+                  radial-gradient(circle at 92% 18%,rgba(168,187,173,.40) 0,rgba(168,187,173,0) 30%),
+                  radial-gradient(circle at 70% 90%,rgba(201,166,166,.34) 0,rgba(201,166,166,0) 32%),
+                  linear-gradient(145deg,#efeae7 0%,#e9e8e2 50%,#eee6e6 100%) !important;
+      background-attachment: fixed !important;
+      min-height: 100vh;
+    }
+    .navy-card {
+      background: var(--tl-paper);
+      border: 2px solid var(--tl-ink);
+      box-shadow: 4px 4px 0px rgba(48,42,56,.15);
+      transition: all 0.2s ease;
+    }
+    .navy-input {
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: var(--tl-ink);
+      transition: all 0.2s;
+    }
+    .navy-input:focus {
+      border-color: var(--tl-ink);
+      box-shadow: 2px 2px 0px var(--tl-ink);
+      outline: none;
+    }
+    .navy-btn {
+      background-color: var(--tl-ink);
+      color: #ffffff;
+      transition: all 0.15s ease;
+    }
+    .navy-btn:hover {
+      background-color: #1e293b;
+      transform: translateY(-1px);
+    }
+    .navy-btn-outline {
+      border: 1.5px solid var(--tl-ink);
+      color: var(--tl-ink);
+      background: transparent;
+      transition: all 0.15s ease;
+    }
+    .navy-btn-outline:hover {
+      background-color: var(--tl-ink);
+      color: #ffffff;
+    }
+    .passport-badge {
+      border: 1px dashed var(--tl-ink);
+      letter-spacing: 0.15em;
+    }
 
-* { box-sizing: border-box; }
-html { min-height: 100%; }
-body {
-  min-height: 100vh;
-  margin: 0;
-  overflow-x: hidden;
-  background:
-    radial-gradient(circle at 8% 5%, rgba(190, 172, 193, .48) 0, rgba(190, 172, 193, 0) 34%),
-    radial-gradient(circle at 90% 18%, rgba(168, 187, 173, .43) 0, rgba(168, 187, 173, 0) 31%),
-    radial-gradient(circle at 70% 90%, rgba(201, 166, 166, .38) 0, rgba(201, 166, 166, 0) 33%),
-    linear-gradient(145deg, #efeae7 0%, #e9e8e2 48%, #eee6e6 100%);
-  color: var(--ink);
-}
-body.modal-open { overflow: hidden; }
-button, input, textarea { font: inherit; }
-button { cursor: pointer; }
-button:disabled { cursor: wait; opacity: .62; }
-svg { display: block; }
-
-.ambient {
-  position: fixed;
-  z-index: -1;
-  border-radius: 999px;
-  filter: blur(10px);
-  opacity: .65;
-  pointer-events: none;
-}
-.ambient-a { width: 260px; height: 260px; top: 14%; left: -100px; background: rgba(167, 151, 181, .24); }
-.ambient-b { width: 320px; height: 320px; top: 52%; right: -150px; background: rgba(151, 174, 160, .22); }
-.ambient-c { width: 230px; height: 230px; bottom: -60px; left: 35%; background: rgba(194, 155, 160, .20); }
-
-.shell {
-  width: min(780px, calc(100% - 32px));
-  margin: 44px auto 86px;
-  display: grid;
-  gap: 40px;
-}
-
-.card,
-.post {
-  border: 1px solid rgba(255,255,255,.64);
-  background: var(--paper);
-  backdrop-filter: blur(22px) saturate(115%);
-  -webkit-backdrop-filter: blur(22px) saturate(115%);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.7);
-}
-.card {
-  position: relative;
-  overflow: hidden;
-  border-radius: 32px;
-  padding: 30px;
-}
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 5px;
-  background: var(--gradient);
-  opacity: .72;
-}
-
-.headline, .feed-title, .music-box-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.headline { align-items: flex-start; }
-.headline-copy { min-width: 0; }
-.headline-kicker { display: inline-flex; align-items: center; gap: 8px; }
-h1, h2, p { margin-top: 0; }
-h1 {
-  margin: 4px 0 0;
-  font-size: clamp(28px, 5vw, 42px);
-  line-height: 1.18;
-  letter-spacing: -.045em;
-  color: #373238;
-}
-h2 {
-  margin-bottom: 0;
-  font-size: 25px;
-  letter-spacing: -.03em;
-}
-.lead { margin: 10px 0 0; color: #80767c; font-size: 14px; line-height: 1.7; }
-.eyebrow {
-  margin: 0;
-  color: #867a82;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: .21em;
-}
-
-.gradient-icon {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border: 1px solid rgba(255,255,255,.56);
-  border-radius: 13px;
-  background: var(--gradient);
-  box-shadow: 0 8px 24px rgba(116, 94, 110, .19), inset 0 1px 0 rgba(255,255,255,.34);
-}
-.gradient-icon svg { width: 20px; height: 20px; fill: rgba(255,255,255,.94); }
-.gradient-icon-sm { width: 27px; height: 27px; border-radius: 9px; }
-.gradient-icon-sm svg { width: 14px; height: 14px; }
-.gradient-icon-xs { width: 24px; height: 24px; border-radius: 8px; }
-.gradient-icon-xs svg { width: 13px; height: 13px; }
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  border: 1px solid rgba(255,255,255,.58);
-  border-radius: 999px;
-  background: rgba(255,255,255,.48);
-  color: #655d63;
-  box-shadow: 0 8px 24px rgba(83,72,79,.07);
-  font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-.pill-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--gradient);
-  box-shadow: 0 0 0 4px rgba(169,154,182,.13);
-}
-
-#postForm { display: grid; gap: 19px; margin-top: 26px; }
-.field { display: grid; gap: 9px; font-size: 13px; font-weight: 800; color: #5b5258; }
-.field-label { display: flex; align-items: center; gap: 8px; }
-input, textarea {
-  width: 100%;
-  border: 1px solid rgba(111, 98, 106, .16);
-  background: rgba(255,255,255,.67);
-  color: var(--ink);
-  border-radius: 17px;
-  padding: 14px 15px;
-  outline: none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
-  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease, transform .18s ease;
-}
-input::placeholder, textarea::placeholder { color: #9a9297; }
-input:focus, textarea:focus {
-  border-color: rgba(154, 137, 167, .48);
-  background: rgba(255,255,255,.88);
-  box-shadow: 0 0 0 4px rgba(169,154,182,.12), inset 0 1px 0 rgba(255,255,255,.8);
-}
-textarea { min-height: 98px; resize: vertical; line-height: 1.7; }
-input[type="file"] { padding: 11px; }
-input[type="file"]::file-selector-button {
-  margin-right: 11px;
-  border: 0;
-  border-radius: 11px;
-  padding: 9px 13px;
-  background: var(--gradient-soft);
-  color: #61565e;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.preview-wrap, .post-image-wrap {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.7);
-  border-radius: 25px;
-  background: linear-gradient(135deg, #ded8dd, #dce2dd);
-  box-shadow: 0 18px 45px rgba(74, 63, 71, .11);
-}
-.preview-wrap > img, .post-image { display: block; width: 100%; aspect-ratio: 4/5; object-fit: cover; }
-
-.music-box {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(126, 110, 120, .12);
-  border-radius: 24px;
-  padding: 18px;
-  background:
-    linear-gradient(135deg, rgba(183,166,191,.14), rgba(165,186,172,.13) 52%, rgba(202,168,171,.15)),
-    rgba(255,255,255,.48);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
-}
-.music-box::after {
-  content: "";
-  position: absolute;
-  width: 110px;
-  height: 110px;
-  right: -48px;
-  top: -48px;
-  border-radius: 50%;
-  background: rgba(174,158,188,.13);
-  pointer-events: none;
-}
-.music-box-title { position: relative; z-index: 1; }
-.section-label { display: flex; align-items: center; gap: 10px; font-size: 15px; color: #4f474d; }
-.search-row { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr auto; gap: 9px; margin-top: 14px; }
-.search-input-wrap { position: relative; }
-.search-input-wrap input { padding-left: 42px; }
-.search-icon {
-  position: absolute;
-  z-index: 2;
-  left: 14px;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  transform: translateY(-50%);
-  fill: none;
-  stroke: #968a92;
-  stroke-width: 2;
-  stroke-linecap: round;
-  pointer-events: none;
-}
-
-.primary, .secondary {
-  border: 0;
-  border-radius: 16px;
-  padding: 13px 17px;
-  font-weight: 900;
-  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
-}
-.primary:hover, .secondary:hover, .track button:hover { transform: translateY(-1px); }
-.primary:active, .secondary:active, .track button:active { transform: translateY(0); }
-.primary {
-  min-height: 52px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  background: var(--gradient);
-  color: #fff;
-  box-shadow: 0 14px 32px rgba(120, 100, 114, .24), inset 0 1px 0 rgba(255,255,255,.25);
-}
-.primary:hover { box-shadow: 0 16px 36px rgba(120, 100, 114, .3); filter: saturate(105%); }
-.button-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-.secondary {
-  min-width: 74px;
-  border: 1px solid rgba(255,255,255,.57);
-  background: rgba(255,255,255,.62);
-  color: #5f565c;
-  box-shadow: 0 8px 20px rgba(91,75,84,.08);
-}
-.text-button {
-  border: 0;
-  border-radius: 999px;
-  padding: 7px 10px;
-  background: rgba(255,255,255,.45);
-  color: #7c6f77;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.muted { position: relative; z-index: 1; color: #82777e; font-size: 12px; margin: 12px 0 0; line-height: 1.65; }
-.music-results { position: relative; z-index: 1; display: grid; gap: 9px; margin-top: 13px; max-height: 390px; overflow: auto; padding-right: 2px; }
-.music-results::-webkit-scrollbar { width: 7px; }
-.music-results::-webkit-scrollbar-track { background: transparent; }
-.music-results::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(124,111,119,.2); }
-.track {
-  display: grid;
-  grid-template-columns: 92px 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 10px;
-  border: 1px solid rgba(123,109,118,.12);
-  background: rgba(255,255,255,.66);
-  border-radius: 17px;
-  box-shadow: 0 7px 18px rgba(81,67,76,.05);
-  transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
-}
-.track:hover { transform: translateY(-1px); background: rgba(255,255,255,.84); box-shadow: 0 10px 24px rgba(81,67,76,.09); }
-.track > img, .thumb-placeholder { width: 92px; height: 52px; object-fit: cover; border-radius: 11px; background: linear-gradient(135deg,#d8cfd8,#d3ddd6); }
-.track-meta { min-width: 0; }
-.track-title { color: #4f474d; font-weight: 900; font-size: 13px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.track-artist { margin-top: 3px; font-size: 11px; color: #8a7f85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.track-link { display: inline-block; margin-top: 5px; color: #81727d; font-size: 10px; text-decoration: none; border-bottom: 1px solid rgba(129,114,125,.3); }
-.track button {
-  border: 0;
-  border-radius: 12px;
-  padding: 9px 11px;
-  background: linear-gradient(135deg, #a99ab6, #9daea3);
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(112,94,106,.18);
-  font-size: 11px;
-  font-weight: 900;
-  white-space: nowrap;
-  transition: transform .16s ease, box-shadow .16s ease;
-}
-
-.music-overlay {
-  position: absolute;
-  left: 15px;
-  right: 15px;
-  bottom: 15px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 61px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255,255,255,.28);
-  border-radius: 18px;
-  background:
-    linear-gradient(135deg, rgba(103,88,105,.68), rgba(87,106,98,.67) 52%, rgba(130,95,101,.66));
-  backdrop-filter: blur(17px) saturate(125%);
-  -webkit-backdrop-filter: blur(17px) saturate(125%);
-  color: #fff;
-  text-decoration: none;
-  box-shadow: 0 12px 34px rgba(49,41,47,.24), inset 0 1px 0 rgba(255,255,255,.22);
-}
-.music-overlay::before {
-  content: "♪";
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 10px;
-  background: rgba(255,255,255,.17);
-  font-weight: 900;
-}
-.music-overlay img { width: 62px; height: 35px; object-fit: cover; border-radius: 9px; flex: 0 0 auto; }
-.music-overlay .meta { min-width: 0; display: block; text-align: left; }
-.music-overlay .title { display: block; font-weight: 900; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.music-overlay .artist { display: block; color: rgba(255,255,255,.72); font-size: 10px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.music-play-button { width: auto; }
-.music-play-button:hover { filter: brightness(1.04); }
-
-.feed { display: grid; gap: 23px; margin-top: 17px; }
-#feed { display: none; }
-.feed-title { display: none; }
-.post { border-radius: 28px; padding: 12px; }
-.post-body { padding: 15px 10px 9px; }
-.post-caption { margin: 0; color: #51494f; line-height: 1.75; font-size: 14px; }
-.post-date { margin: 9px 0 0; color: #9a8f95; font-size: 10px; }
-.empty {
-  border: 1px dashed rgba(118,104,113,.2);
-  border-radius: 22px;
-  padding: 34px 14px;
-  background: rgba(255,255,255,.32);
-  color: #887d83;
-  text-align: center;
-  font-size: 13px;
-}
-
-.player-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(49,43,47,.68);
-  backdrop-filter: blur(9px);
-}
-.player-dialog {
-  width: min(880px, 100%);
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 24px;
-  background: #292629;
-  color: #fff;
-  box-shadow: 0 34px 110px rgba(31,26,29,.48);
-}
-.player-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; }
-.player-bar strong { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.player-bar button { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.08); border-radius: 999px; background: rgba(255,255,255,.08); color: #fff; flex: 0 0 auto; }
-.player-frame-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
-.player-frame-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-.youtube-link { display: block; padding: 13px 16px 16px; color: #e7dde5; font-size: 12px; text-align: right; }
-.hidden { display: none !important; }
-
-
-.location-box {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(126, 110, 120, .12);
-  border-radius: 24px;
-  padding: 18px;
-  background:
-    linear-gradient(135deg, rgba(157,174,163,.14), rgba(183,166,191,.12) 52%, rgba(200,179,157,.15)),
-    rgba(255,255,255,.48);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
-}
-.location-box::after {
-  content: "";
-  position: absolute;
-  width: 120px;
-  height: 120px;
-  right: -52px;
-  top: -52px;
-  border-radius: 50%;
-  background: rgba(157,174,163,.13);
-  pointer-events: none;
-}
-.location-head {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.location-search-row {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 9px;
-  margin-top: 14px;
-}
-.location-results {
-  position: relative;
-  z-index: 4;
-  display: grid;
-  gap: 7px;
-  margin-top: 9px;
-}
-.location-result {
-  width: 100%;
-  border: 1px solid rgba(123,109,118,.12);
-  border-radius: 14px;
-  padding: 10px 12px;
-  background: rgba(255,255,255,.72);
-  color: #574e54;
-  text-align: left;
-  line-height: 1.45;
-  font-size: 12px;
-  font-weight: 700;
-  box-shadow: 0 6px 16px rgba(81,67,76,.05);
-}
-.location-result:hover {
-  background: rgba(255,255,255,.9);
-  transform: translateY(-1px);
-}
-#travelMap {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 330px;
-  margin-top: 13px;
-  border: 1px solid rgba(255,255,255,.72);
-  border-radius: 20px;
-  overflow: hidden;
-  background: #e8e5df;
-  box-shadow: 0 12px 30px rgba(75,64,71,.09);
-}
-.location-status {
-  position: relative;
-  z-index: 2;
-  margin: 10px 0 0;
-  color: #82777e;
-  font-size: 11px;
-  line-height: 1.6;
-}
-.location-status strong {
-  color: #5f565c;
-}
-.location-coords {
-  display: inline-flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 5px;
-  color: #9a8f95;
-  font-size: 10px;
-}
-.leaflet-control-attribution {
-  font-size: 9px !important;
-}
-.leaflet-popup-content {
-  font-family: Inter, "Noto Sans JP", sans-serif;
-  color: #4f474d;
-}
-
-@media (max-width: 560px) {
-  .shell { width: min(100% - 18px, 780px); margin: 14px auto 55px; gap: 28px; }
-  .card { padding: 20px; border-radius: 25px; }
-  .headline { align-items: flex-start; }
-  h1 { font-size: 29px; }
-  .lead { font-size: 12px; }
-  .pill { display: none; }
-  .search-row { grid-template-columns: 1fr; }
-  .location-search-row { grid-template-columns: 1fr; }
-  .location-search-row .secondary { width: 100%; }
-  #travelMap { height: 270px; }
-  .secondary { width: 100%; }
-  .track { grid-template-columns: 82px 1fr; }
-  .track > img, .thumb-placeholder { width: 82px; height: 46px; }
-  .track button { grid-column: 1 / -1; }
-  .music-overlay { left: 10px; right: 10px; bottom: 10px; padding: 9px 10px; }
-  .music-overlay::before { display: none; }
-  .player-modal { padding: 8px; }
-  .player-dialog { border-radius: 17px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
-}
-
-</style>
+    /* 音楽プレイヤー用スタイル */
+    .home-song-card {
+      overflow: hidden;
+      margin: 11px 0 13px;
+      border: 2px solid var(--tl-ink);
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--tl-soft-lav), var(--tl-soft-sage) 52%, var(--tl-soft-rose));
+      box-shadow: 4px 4px 0 rgba(48,42,56,.12);
+    }
+    .home-song-row {
+      display: grid;
+      grid-template-columns: 74px minmax(0,1fr) 46px;
+      align-items: center;
+      gap: 11px;
+      padding: 10px;
+    }
+    .home-song-thumb {
+      width: 74px;
+      height: 50px;
+      object-fit: cover;
+      border: 1.5px solid var(--tl-ink);
+      border-radius: 11px;
+      background: #d8d0db;
+    }
+    .home-song-meta { min-width: 0; }
+    .home-song-kicker {
+      display: block;
+      margin-bottom: 3px;
+      color: #8a7890;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .14em;
+    }
+    .home-song-title {
+      display: block;
+      overflow: hidden;
+      color: var(--tl-ink);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.35;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .home-song-artist {
+      display: block;
+      overflow: hidden;
+      margin-top: 3px;
+      color: var(--tl-muted);
+      font-size: 10px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .home-song-play {
+      width: 44px !important;
+      height: 44px !important;
+      min-width: 44px !important;
+      display: grid !important;
+      place-items: center !important;
+      padding: 0 !important;
+      border: 2px solid var(--tl-ink) !important;
+      border-radius: 50% !important;
+      background: linear-gradient(135deg, var(--tl-rose), var(--tl-lav)) !important;
+      color: #fff !important;
+      box-shadow: 3px 3px 0 rgba(48,42,56,.18) !important;
+      font-size: 17px !important;
+      font-weight: 900 !important;
+      line-height: 1 !important;
+    }
+    .home-song-play.is-playing {
+      background: linear-gradient(135deg, var(--tl-sage), #aebdca) !important;
+    }
+    .home-song-player {
+      display: none;
+      border-top: 2px solid var(--tl-ink);
+      background: #252128;
+    }
+    .home-song-player.is-open { display: block; }
+    .home-song-player-ratio {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #111;
+    }
+    .home-song-player-ratio iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .home-song-player-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 11px;
+      color: #f5eef5;
+      font-size: 10px;
+    }
+    .home-song-player-bottom a {
+      color: #f5eef5 !important;
+      text-decoration: underline !important;
+      text-underline-offset: 3px;
+    }
+  </style>
 </head>
-<body>
-  <div class="ambient ambient-a" aria-hidden="true"></div>
-  <div class="ambient ambient-b" aria-hidden="true"></div>
-  <div class="ambient ambient-c" aria-hidden="true"></div>
+<body class="selection:bg-slate-900 selection:text-white">
 
-  <main class="shell">
-    <section class="composer card">
-      <div class="headline">
-        <div class="headline-copy">
-          <div class="headline-kicker">
-            <span class="gradient-icon gradient-icon-sm" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 17.5A3.5 3.5 0 1 0 11 17.5V7.8l8-1.8v7A3.5 3.5 0 1 0 21 16.2V3.5L9 6.2v8A3.5 3.5 0 0 0 4 17.5Z"/></svg>
-            </span>
-            <p class="eyebrow">NEW MEMORY</p>
-          </div>
-          <h1>写真に「今日の1曲」を。</h1>
-          <p class="lead">その日の景色と音楽を、ひとつの思い出に。</p>
+  <!-- ============================================== -->
+  <!-- 1. 未ログイン／ログアウト専用画面（WELCOME GATE） -->
+  <!-- ============================================== -->
+  <div id="landingView" class="hidden min-h-screen flex flex-col justify-between max-w-md mx-auto p-6">
+    <div class="pt-8">
+      <div class="inline-block px-3 py-1 bg-slate-900 text-white text-[9px] font-bold tracking-[0.25em] uppercase rounded-full mb-4">
+        Official Travel Journal
+      </div>
+      <h1 class="text-3xl font-extrabold tracking-[0.18em] text-slate-900 leading-tight uppercase">
+        Travel<br>Log.
+      </h1>
+      <p class="text-xs text-slate-500 mt-2 font-medium tracking-wider">
+        地図と写真で記録する、あなただけの旅路のアーカイブ
+      </p>
+    </div>
+
+    <div class="my-8 navy-card rounded-2xl p-5 bg-white relative overflow-hidden">
+      <div class="text-[10px] font-mono text-slate-400 tracking-widest uppercase mb-1">Passport / Archive #01</div>
+      <div class="text-sm font-bold text-slate-900 mb-3">旅の記憶を鮮明に、シンプルに美しく。</div>
+      <div class="space-y-2 text-xs text-slate-600">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
+          <span>OpenStreetMap & Google Maps 連携</span>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
-          <a href="/" class="pill" style="text-decoration:none">← ホームへ戻る</a>
-          <span class="pill">
-            <span class="pill-dot"></span>
-            YouTube Music
-          </span>
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
+          <span>お互いのログを共有するフォロー & DM</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
+          <span>思い出にYouTubeの「今日の1曲」を添付</span>
         </div>
       </div>
+    </div>
 
-      <form id="postForm">
-        <label class="field upload-field">
-          <span class="field-label">
-            <span class="gradient-icon gradient-icon-xs" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5v-13Zm3 11.9h10l-3.2-4-2.4 2.8-1.7-2-2.7 3.2ZM15.8 9A1.8 1.8 0 1 0 15.8 5.4 1.8 1.8 0 0 0 15.8 9Z"/></svg>
-            </span>
-            写真
-          </span>
-          <input id="image" name="image" type="file" accept="image/*" required />
-        </label>
+    <!-- 認証フォーム -->
+    <div class="bg-white border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-4">
+        <h2 id="gateTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">SIGN IN TO YOUR LOG</h2>
+        <span class="text-[10px] font-mono text-slate-400">AUTHENTICATION</span>
+      </div>
 
-        <div id="previewWrap" class="preview-wrap hidden">
-          <img id="imagePreview" alt="投稿画像プレビュー" />
-          <div id="musicOverlay" class="music-overlay hidden"></div>
+      <form id="gateAuthForm" class="space-y-3">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">User ID (@username)</label>
+          <input type="text" id="gateUsername" required class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="traveler123">
         </div>
 
-        <label class="field">
-          <span class="field-label">スポット名 / タイトル</span>
-          <input id="travelSpotName" name="name" type="text" maxlength="120" placeholder="例：広安里海水浴場 / 釜山 DAY1" required />
-        </label>
-
-
-        <div class="location-box">
-          <div class="location-head">
-            <strong class="section-label">
-              <span class="gradient-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 2.8a7 7 0 0 0-7 7c0 5 7 11.4 7 11.4S19 14.8 19 9.8a7 7 0 0 0-7-7Zm0 9.6a2.7 2.7 0 1 1 0-5.4 2.7 2.7 0 0 1 0 5.4Z"/></svg>
-              </span>
-              場所を追加
-            </strong>
-          </div>
-
-          <div class="location-search-row">
-            <div class="search-input-wrap">
-              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 20-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
-              <input id="locationQuery" type="search" placeholder="地名・観光地・施設名で検索" />
-            </div>
-            <button type="button" id="searchLocation" class="secondary">検索</button>
-            <button type="button" id="useCurrentLocation" class="secondary">現在地</button>
-          </div>
-
-          <div id="locationResults" class="location-results"></div>
-          <p id="locationMessage" class="muted">場所を検索するか、地図をクリックしてピンを置いてください。</p>
-
-          <div id="travelMap" aria-label="投稿場所を選択する地図"></div>
-
-          <div class="location-status">
-            <strong id="selectedLocationName">場所はまだ選択されていません</strong>
-            <div class="location-coords">
-              <span id="selectedLatitude">緯度: --</span>
-              <span id="selectedLongitude">経度: --</span>
-            </div>
-          </div>
+        <div id="gateDisplayNameContainer" class="hidden">
+          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Display Name (表示名)</label>
+          <input type="text" id="gateDisplayName" class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="旅するそら">
         </div>
 
-        <label class="field">
-          <span class="field-label">
-            <span class="gradient-icon gradient-icon-xs" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M5.5 4h13A2.5 2.5 0 0 1 21 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-5.6 4v-4.2A2.5 2.5 0 0 1 3 14.5v-8A2.5 2.5 0 0 1 5.5 4Z"/></svg>
-            </span>
-            ひとこと
-          </span>
-          <textarea name="caption" rows="3" placeholder="今日の思い出を書いてみよう"></textarea>
-        </label>
-
-        <div class="music-box">
-          <div class="music-box-title">
-            <strong class="section-label">
-              <span class="gradient-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M4 17.5A3.5 3.5 0 1 0 11 17.5V7.8l8-1.8v7A3.5 3.5 0 1 0 21 16.2V3.5L9 6.2v8A3.5 3.5 0 0 0 4 17.5Z"/></svg>
-              </span>
-              音楽を追加
-            </strong>
-            <button type="button" id="clearMusic" class="text-button hidden">選択解除</button>
-          </div>
-          <div class="search-row">
-            <div class="search-input-wrap">
-              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 20-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
-              <input id="musicQuery" type="search" placeholder="曲名・アーティスト名で検索" />
-            </div>
-            <button type="button" id="searchMusic" class="secondary">検索</button>
-          </div>
-          <p id="musicMessage" class="muted">YouTubeから曲やMVを検索して、この日の1曲として残せます。</p>
-          <div id="musicResults" class="music-results"></div>
+        <div id="gateEmailContainer" class="hidden">
+          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Email</label>
+          <input type="email" id="gateEmail" class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="you@example.com">
         </div>
 
-        <button type="submit" class="primary">
-          <span class="button-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 18v1.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V18"/></svg>
-          </span>
-          投稿する
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Password</label>
+          <input type="password" id="gatePassword" required class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="••••••••">
+        </div>
+
+        <button type="submit" id="gateSubmitBtn" class="w-full navy-btn font-bold py-3 rounded-xl text-xs tracking-[0.18em] uppercase shadow-sm mt-1 transition">
+          Enter Travel Log
         </button>
       </form>
-    </section>
 
-    <section>
-      <div class="feed-title">
-        <div>
-          <div class="headline-kicker">
-            <span class="gradient-icon gradient-icon-sm" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Zm4.2 8.7 2.6-3 2.2 2.5 2.1-2.3 2.7 3.1H8.2Z"/></svg>
-            </span>
-            <p class="eyebrow">MEMORIES</p>
-          </div>
-          <h2>最近の投稿</h2>
-        </div>
-      </div>
-      <div id="feed" class="feed"></div>
-    </section>
-  </main>
+      <div id="gateStatusMessage" class="hidden mt-3 rounded-xl border px-3 py-2 text-[11px] leading-relaxed"></div>
 
-  <div id="playerModal" class="player-modal hidden" role="dialog" aria-modal="true" aria-label="YouTube player">
-    <div class="player-dialog">
-      <div class="player-bar">
-        <strong id="playerTitle">YouTubeで再生</strong>
-        <button type="button" id="closePlayer" aria-label="閉じる">✕</button>
+      <div class="mt-4 text-center">
+        <button type="button" id="gateToggleBtn" class="text-[11px] text-slate-500 hover:text-slate-900 font-semibold transition underline decoration-slate-300 underline-offset-4">
+          アカウントを新規作成する
+        </button>
       </div>
-      <div class="player-frame-wrap">
-        <iframe
-          id="youtubePlayer"
-          title="YouTube video player"
-          src=""
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allowfullscreen
-        ></iframe>
-      </div>
-      <a id="openYouTube" class="youtube-link" href="#" target="_blank" rel="noopener noreferrer">YouTubeで開く ↗</a>
+    </div>
+
+    <div class="py-6 text-center text-[10px] tracking-widest text-slate-400 font-mono">
+      &copy; 2026 TRAVEL LOG ARCHIVE
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- ============================================== -->
+  <!-- 2. ログイン後メインビュー（APP MAIN VIEW）     -->
+  <!-- ============================================== -->
+  <div id="appView" class="hidden max-w-md mx-auto min-h-screen flex flex-col justify-between pb-12">
+
+    <!-- トップヘッダー -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
+      <div>
+        <h1 class="text-base font-bold tracking-[0.2em] text-slate-900 uppercase cursor-pointer" onclick="switchFeedTab('all')">Travel Log</h1>
+        <p class="text-[9px] tracking-[0.25em] text-slate-500 uppercase font-medium">Archive of Moments</p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openUserSearchModal()" class="text-slate-700 hover:text-slate-950 p-1 transition" title="ユーザーを探す">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+
+        <!-- 復元：通知ボタン -->
+        <button onclick="openNotificationsModal()" class="text-slate-700 hover:text-slate-950 p-1 transition relative" title="通知">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span id="notifBadge" class="hidden absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+        </button>
+
+        <button onclick="openConversationsModal()" class="text-slate-700 hover:text-slate-950 p-1 transition relative" title="メッセージ">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </button>
+
+        <div id="authStatusContainer"></div>
+
+        <!-- 投稿ボタン：add.html へ移動するリンク -->
+        <a href="/static/add.html" id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm font-mono" title="新しい思い出を記録">
+          <span>+</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- フィード切り替えタブ -->
+    <div class="px-4 pt-3 flex items-center gap-4 text-xs font-bold tracking-wider border-b border-slate-200">
+      <button id="tabAll" onclick="switchFeedTab('all')" class="pb-2 text-slate-900 border-b-2 border-slate-900">ALL</button>
+      <button id="tabFollowing" onclick="switchFeedTab('following')" class="pb-2 text-slate-400 hover:text-slate-700">FOLLOWING</button>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <main class="p-4 flex-1">
+      <div class="tl-filter-card bg-white rounded-xl p-3 mb-5 flex items-center justify-between border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-bold tracking-wider text-slate-500 uppercase">DATE</span>
+          <input type="date" id="dateFilter" class="navy-input rounded-lg px-2.5 py-1 text-xs text-slate-800">
+        </div>
+        <button id="clearDate" class="text-[11px] font-semibold tracking-wider text-slate-500 hover:text-slate-900 px-2 py-1 transition">
+          RESET
+        </button>
+      </div>
+
+      <div id="feed" class="space-y-7">
+        <p class="text-center text-xs text-slate-400 py-12 tracking-widest uppercase font-medium">Loading...</p>
+      </div>
+    </main>
+
+    <!-- 復元：通知モーダル (背景クリックで閉じる機能つき) -->
+    <div id="notificationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeNotificationsModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Notifications</h2>
+          <button onclick="closeNotificationsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="notificationsList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- ユーザーID検索モーダル (背景クリックで閉じる機能つき) -->
+    <div id="userSearchModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeUserSearchModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Search Users</h2>
+          <button onclick="closeUserSearchModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex gap-2">
+            <input type="text" id="userSearchInput" placeholder="@username または 表示名で検索..." class="w-full rounded-xl p-2.5 text-xs navy-input">
+            <button onclick="executeUserSearch()" class="navy-btn font-semibold px-4 rounded-xl text-xs tracking-wider">Search</button>
+          </div>
+          <div id="userSearchResults" class="max-h-60 overflow-y-auto divide-y divide-slate-100 text-xs">
+            <p class="text-center text-slate-400 py-6">IDを入力して検索してください</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- プロフィールモーダル (背景クリックで閉じる機能つき) -->
+    <div id="profileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeProfileModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden">
+        
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-900">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 bg-slate-900"></span>
+            <span class="text-[10px] font-mono tracking-[0.2em] uppercase font-bold text-slate-900">Journalist Profile</span>
+          </div>
+          <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
+        </div>
+
+        <div class="space-y-4">
+          <div id="profileCover" class="w-full h-28 border border-slate-900 rounded-xl bg-slate-100 bg-cover bg-center relative shadow-sm">
+            <div class="absolute bottom-2 left-2 passport-badge bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[9px] font-bold text-slate-800">
+              PASSPORT ARCHIVE
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3.5">
+            <div id="profileAvatar" class="w-16 h-16 rounded-xl border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
+            
+            <div class="flex-1 min-w-0">
+              <h2 id="profileDisplayName" class="text-base font-extrabold text-slate-900 leading-tight truncate"></h2>
+              <p id="profileUsername" class="text-[11px] text-slate-400 font-mono mt-0.5"></p>
+              
+              <div id="profileActionContainer" class="mt-2 flex gap-1.5"></div>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 border-l-2 border-slate-900 p-3 rounded-r-xl">
+            <p id="profileBio" class="text-xs text-slate-700 leading-relaxed font-normal"></p>
+          </div>
+
+          <!-- 復元：クリック可能な FOLLOWING / FOLLOWERS カウンター -->
+          <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
+            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition" onclick="openUserListModal('following')">
+              <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Following</span>
+              <span id="profileFollowingCount" class="text-sm font-black text-slate-900">0</span>
+            </div>
+            <div class="border border-slate-200 rounded-xl p-2.5 text-center bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition" onclick="openUserListModal('followers')">
+              <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Followers</span>
+              <span id="profileFollowersCount" class="text-sm font-black text-slate-900">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 復元：ユーザー一覧モーダル（フォロー/フォロワー用） -->
+    <div id="userListModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeUserListModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 id="userListModalTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">USERS</h2>
+          <button onclick="closeUserListModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="userListContent" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
+          <p class="text-center text-slate-400 py-6">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- プロフィール編集モーダル (背景クリックで閉じる機能つき) -->
+    <div id="editProfileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeEditProfileModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">Edit Profile</h2>
+          <button onclick="closeEditProfileModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+
+        <form id="editProfileForm" class="space-y-3">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Display Name (表示名)</label>
+            <input type="text" id="editDisplayName" name="display_name" class="w-full rounded-xl p-2 text-xs navy-input">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Bio (自己紹介)</label>
+            <textarea id="editBio" name="bio" rows="2" class="w-full rounded-xl p-2 text-xs navy-input"></textarea>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Avatar Image (アイコン)</label>
+            <input type="file" name="avatar" accept="image/*" class="w-full text-xs text-slate-600">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Cover Image (背景画像)</label>
+            <input type="file" name="cover" accept="image/*" class="w-full text-xs text-slate-600">
+          </div>
+
+          <button type="submit" class="w-full navy-btn font-bold py-2.5 rounded-xl text-xs tracking-wider uppercase mt-3">Save Changes</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- DM 会話一覧モーダル (背景クリックで閉じる機能つき) -->
+    <div id="conversationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeConversationsModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Messages</h2>
+          <button onclick="closeConversationsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="conversationsList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
+          <p class="text-center text-slate-400 py-6">メッセージのやり取りはありません</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DM チャットモーダル (背景クリックで閉じる機能つき) -->
+    <div id="dmModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="handleBackdropClick(event, closeDmModal)">
+      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl h-[520px] flex flex-col shadow-2xl overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-900 flex items-center justify-between bg-slate-50">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-900" id="dmPartnerTitle">Chat</span>
+          </div>
+          <button onclick="closeDmModal()" class="text-slate-400 hover:text-slate-900 text-xs">✕</button>
+        </div>
+
+        <div id="dmMessageList" class="flex-1 p-4 overflow-y-auto space-y-3 bg-white text-xs"></div>
+
+        <form id="dmSendForm" class="p-2.5 border-t border-slate-200 bg-white flex gap-2">
+          <input type="text" id="dmInput" required placeholder="メッセージを入力..." class="flex-1 rounded-xl p-2 text-xs navy-input">
+          <button type="submit" class="navy-btn px-4 py-2 rounded-xl text-xs font-bold">送信</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
 
   <script>
-const postForm = document.getElementById("postForm");
-const imageInput = document.getElementById("image");
-const imagePreview = document.getElementById("imagePreview");
-const previewWrap = document.getElementById("previewWrap");
-const musicOverlay = document.getElementById("musicOverlay");
-const musicQuery = document.getElementById("musicQuery");
-const searchMusicButton = document.getElementById("searchMusic");
-const musicResults = document.getElementById("musicResults");
-const musicMessage = document.getElementById("musicMessage");
-const clearMusicButton = document.getElementById("clearMusic");
-const feed = document.getElementById("feed");
-const playerModal = document.getElementById("playerModal");
-const youtubePlayer = document.getElementById("youtubePlayer");
-const closePlayerButton = document.getElementById("closePlayer");
-const playerTitle = document.getElementById("playerTitle");
-const openYouTube = document.getElementById("openYouTube");
-const locationQuery = document.getElementById("locationQuery");
-const searchLocationButton = document.getElementById("searchLocation");
-const useCurrentLocationButton = document.getElementById("useCurrentLocation");
-const locationResults = document.getElementById("locationResults");
-const locationMessage = document.getElementById("locationMessage");
-const selectedLocationName = document.getElementById("selectedLocationName");
-const selectedLatitudeLabel = document.getElementById("selectedLatitude");
-const selectedLongitudeLabel = document.getElementById("selectedLongitude");
+    let currentFeedTab = 'all';
+    let currentUser = null;
+    let activeDmPartner = null;
+    let currentProfileUsername = null;
 
-let selectedVideo = null;
-let currentPreviewUrl = null;
+    const landingView = document.getElementById('landingView');
+    const appView = document.getElementById('appView');
+    const feedEl = document.getElementById('feed');
+    const dateFilterEl = document.getElementById('dateFilter');
+    const clearDateEl = document.getElementById('clearDate');
 
-let travelMap = null;
-let travelMarker = null;
-let selectedLatitude = null;
-let selectedLongitude = null;
-let selectedPlaceLabel = "";
-
-function initTravelMap() {
-  if (!window.L || !document.getElementById("travelMap")) {
-    locationMessage.textContent = "地図を読み込めませんでした。インターネット接続を確認してください。";
-    return;
-  }
-
-  travelMap = L.map("travelMap", {
-    zoomControl: true,
-    scrollWheelZoom: true
-  }).setView([36.2048, 138.2529], 5);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
-  }).addTo(travelMap);
-
-  travelMap.on("click", async (event) => {
-    const { lat, lng } = event.latlng;
-    setSelectedLocation(lat, lng, "地図で選択した場所");
-    await reverseGeocode(lat, lng);
-  });
-
-  setTimeout(() => travelMap.invalidateSize(), 100);
-}
-
-function setSelectedLocation(lat, lng, label = "") {
-  selectedLatitude = Number(lat);
-  selectedLongitude = Number(lng);
-  selectedPlaceLabel = label || selectedPlaceLabel || "選択した場所";
-
-  if (!travelMap) return;
-
-  if (!travelMarker) {
-    travelMarker = L.marker([selectedLatitude, selectedLongitude], {
-      draggable: true
-    }).addTo(travelMap);
-
-    travelMarker.on("dragend", async () => {
-      const pos = travelMarker.getLatLng();
-      setSelectedLocation(pos.lat, pos.lng, "ピンを移動した場所");
-      await reverseGeocode(pos.lat, pos.lng);
-    });
-  } else {
-    travelMarker.setLatLng([selectedLatitude, selectedLongitude]);
-  }
-
-  selectedLocationName.textContent = selectedPlaceLabel;
-  selectedLatitudeLabel.textContent = `緯度: ${selectedLatitude.toFixed(6)}`;
-  selectedLongitudeLabel.textContent = `経度: ${selectedLongitude.toFixed(6)}`;
-  locationMessage.textContent = "ピンをドラッグして位置を微調整できます。";
-}
-
-async function searchLocation() {
-  const q = locationQuery.value.trim();
-  if (!q) {
-    locationMessage.textContent = "地名・観光地・施設名を入力してください。";
-    return;
-  }
-
-  searchLocationButton.disabled = true;
-  locationMessage.textContent = "場所を検索中...";
-  locationResults.innerHTML = "";
-
-  try {
-    const url =
-      "https://nominatim.openstreetmap.org/search" +
-      `?format=jsonv2&limit=5&addressdetails=1&accept-language=ja&q=${encodeURIComponent(q)}`;
-
-    const response = await fetch(url, {
-      headers: { "Accept": "application/json" }
-    });
-    if (!response.ok) throw new Error(`場所検索に失敗しました (HTTP ${response.status})`);
-
-    const items = await response.json();
-    if (!Array.isArray(items) || !items.length) {
-      locationMessage.textContent = "場所が見つかりませんでした。別のキーワードを試してください。";
-      return;
-    }
-
-    locationMessage.textContent = `${items.length}件見つかりました。場所を選んでください。`;
-
-    items.forEach((item) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "location-result";
-      button.textContent = item.display_name || q;
-      button.addEventListener("click", () => {
-        const lat = Number(item.lat);
-        const lng = Number(item.lon);
-        const label = item.display_name || q;
-        setSelectedLocation(lat, lng, label);
-        travelMap.setView([lat, lng], 16);
-        travelMarker?.bindPopup(escapeHtml(label)).openPopup();
-
-        const titleInput = document.getElementById("travelSpotName");
-        if (!titleInput.value.trim()) {
-          const firstName =
-            item.name ||
-            (item.display_name ? item.display_name.split(",")[0] : q);
-          titleInput.value = firstName;
-        }
-
-        locationResults.innerHTML = "";
-      });
-      locationResults.appendChild(button);
-    });
-  } catch (error) {
-    locationMessage.textContent = error.message || "場所検索に失敗しました。";
-  } finally {
-    searchLocationButton.disabled = false;
-  }
-}
-
-async function reverseGeocode(lat, lng) {
-  try {
-    const url =
-      "https://nominatim.openstreetmap.org/reverse" +
-      `?format=jsonv2&accept-language=ja&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
-
-    const response = await fetch(url, {
-      headers: { "Accept": "application/json" }
-    });
-    if (!response.ok) return;
-
-    const item = await response.json();
-    const label = item.display_name || "地図で選択した場所";
-    selectedPlaceLabel = label;
-    selectedLocationName.textContent = label;
-
-    const titleInput = document.getElementById("travelSpotName");
-    if (!titleInput.value.trim()) {
-      const firstName =
-        item.name ||
-        item.address?.attraction ||
-        item.address?.tourism ||
-        item.address?.building ||
-        item.address?.road ||
-        item.address?.city ||
-        label.split(",")[0];
-      if (firstName) titleInput.value = firstName;
-    }
-  } catch (_) {
-    // Coordinates and the map pin remain usable if reverse geocoding fails.
-  }
-}
-
-searchLocationButton.addEventListener("click", searchLocation);
-locationQuery.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    searchLocation();
-  }
-});
-
-useCurrentLocationButton.addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    locationMessage.textContent = "このブラウザでは現在地取得に対応していません。";
-    return;
-  }
-
-  useCurrentLocationButton.disabled = true;
-  locationMessage.textContent = "現在地を取得しています...";
-
-  navigator.geolocation.getCurrentPosition(
-    async (position) => {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      setSelectedLocation(lat, lng, "現在地");
-      travelMap?.setView([lat, lng], 16);
-      await reverseGeocode(lat, lng);
-      useCurrentLocationButton.disabled = false;
-    },
-    (error) => {
-      locationMessage.textContent =
-        error.code === 1
-          ? "現在地の利用が許可されませんでした。地図検索または地図クリックで選択できます。"
-          : "現在地を取得できませんでした。地図検索または地図クリックで選択してください。";
-      useCurrentLocationButton.disabled = false;
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-  );
-});
-
-initTravelMap();
-
-imageInput.addEventListener("change", () => {
-  const file = imageInput.files?.[0];
-  if (!file) return;
-
-  if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
-  currentPreviewUrl = URL.createObjectURL(file);
-  imagePreview.src = currentPreviewUrl;
-  previewWrap.classList.remove("hidden");
-  renderSelectedMusic();
-});
-
-searchMusicButton.addEventListener("click", searchMusic);
-musicQuery.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    searchMusic();
-  }
-});
-
-clearMusicButton.addEventListener("click", () => {
-  selectedVideo = null;
-  clearMusicButton.classList.add("hidden");
-  musicMessage.textContent = "音楽の選択を解除しました。";
-  renderSelectedMusic();
-});
-
-closePlayerButton.addEventListener("click", closePlayer);
-playerModal.addEventListener("click", (event) => {
-  if (event.target === playerModal) closePlayer();
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !playerModal.classList.contains("hidden")) {
-    closePlayer();
-  }
-});
-
-async function searchMusic() {
-  const q = musicQuery.value.trim();
-  if (!q) {
-    musicMessage.textContent = "曲名かアーティスト名を入力してください。";
-    return;
-  }
-
-  searchMusicButton.disabled = true;
-  musicMessage.textContent = "YouTubeで検索中...";
-  musicResults.innerHTML = "";
-
-  try {
-    const response = await fetch(`/api/music/search?q=${encodeURIComponent(q)}&limit=10`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || "検索に失敗しました。");
-
-    musicMessage.textContent = data.items.length
-      ? `${data.items.length}件見つかりました。動画を確認して1曲選んでください。`
-      : "見つかりませんでした。別の曲名やアーティスト名で試してください。";
-
-    data.items.forEach((video) => {
-      const row = document.createElement("div");
-      row.className = "track";
-      row.innerHTML = `
-        ${video.cover_url ? `<img src="${escapeHtml(video.cover_url)}" alt="">` : `<div class="thumb-placeholder"></div>`}
-        <div class="track-meta">
-          <div class="track-title">${escapeHtml(video.title || "")}</div>
-          <div class="track-artist">${escapeHtml(video.artist || "")}</div>
-          <a class="track-link" href="${escapeHtml(video.external_url || "#")}" target="_blank" rel="noopener noreferrer">YouTubeで確認 ↗</a>
-        </div>
-        <button type="button">この曲を選ぶ</button>
-      `;
-      row.querySelector("button").addEventListener("click", () => {
-        selectedVideo = video;
-        musicMessage.textContent = `選択中：${decodeEntities(video.title || "")} — ${decodeEntities(video.artist || "")}`;
-        clearMusicButton.classList.remove("hidden");
-        renderSelectedMusic();
-      });
-      musicResults.appendChild(row);
-    });
-  } catch (error) {
-    musicMessage.textContent = error.message;
-  } finally {
-    searchMusicButton.disabled = false;
-  }
-}
-
-function renderSelectedMusic() {
-  if (!selectedVideo || previewWrap.classList.contains("hidden")) {
-    musicOverlay.classList.add("hidden");
-    musicOverlay.innerHTML = "";
-    return;
-  }
-
-  musicOverlay.classList.remove("hidden");
-  musicOverlay.innerHTML = `
-    ${selectedVideo.cover_url ? `<img src="${escapeHtml(selectedVideo.cover_url)}" alt="">` : ""}
-    <div class="meta">
-      <div class="title">${escapeHtml(decodeEntities(selectedVideo.title || ""))}</div>
-      <div class="artist">${escapeHtml(decodeEntities(selectedVideo.artist || ""))} · YouTube</div>
-    </div>
-  `;
-}
-
-postForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const submitButton = postForm.querySelector('button[type="submit"]');
-  const originalText = submitButton.textContent;
-  submitButton.disabled = true;
-  submitButton.textContent = "投稿中...";
-
-  try {
-    const imageFile = imageInput.files?.[0];
-    if (!imageFile) throw new Error("写真を選択してください。");
-
-    const name = document.getElementById("travelSpotName")?.value?.trim();
-    if (!name) throw new Error("スポット名 / タイトルを入力してください。");
-
-    const caption = postForm.querySelector('textarea[name="caption"]')?.value?.trim() || "";
-
-    if (!Number.isFinite(selectedLatitude) || !Number.isFinite(selectedLongitude)) {
-      throw new Error("地図で投稿場所を選択してください。");
-    }
-
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("memo", caption);
-    formData.append("visited_at", new Date().toISOString());
-    formData.append("latitude", String(selectedLatitude));
-    formData.append("longitude", String(selectedLongitude));
-    formData.append("file", imageFile, imageFile.name);
-
-    // The current Travel Log upload API has no dedicated music columns yet.
-    // Keep the selected music metadata in memo so it is not lost.
-    if (selectedVideo) {
-      const musicTitle = decodeEntities(selectedVideo.title || "");
-      const artist = decodeEntities(selectedVideo.artist || "");
-      const videoId = selectedVideo.youtube_video_id || "";
-      const url = selectedVideo.external_url || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "");
-      const musicLine = `\n\n🎵 ${musicTitle}${artist ? ` — ${artist}` : ""}${url ? `\n${url}` : ""}`;
-      formData.set("memo", `${caption}${musicLine}`.trim());
-    }
-
-    // Support both cookie-session auth and Bearer-token auth.
-    const headers = {};
-    const findToken = () => {
-      const stores = [window.localStorage, window.sessionStorage];
-      const preferred = ["access_token", "accessToken", "token", "auth_token", "authToken", "jwt", "jwt_token"];
-      const extract = (raw) => {
-        if (!raw) return "";
-        const text = String(raw).trim();
-        if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text)) return text;
-        try {
-          const obj = JSON.parse(text);
-          const walk = (v, depth=0) => {
-            if (depth > 4 || v == null) return "";
-            if (typeof v === "string" && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v.trim())) return v.trim();
-            if (typeof v !== "object") return "";
-            for (const k of ["access_token","accessToken","token","auth_token","authToken","jwt","jwt_token"]) {
-              if (typeof v[k] === "string" && v[k].trim()) return v[k].replace(/^Bearer\s+/i, "").trim();
-            }
-            for (const value of Object.values(v)) {
-              const found = walk(value, depth+1);
-              if (found) return found;
-            }
-            return "";
-          };
-          return walk(obj);
-        } catch (_) {
-          return text.replace(/^Bearer\s+/i, "").trim();
-        }
-      };
-      for (const store of stores) {
-        if (!store) continue;
-        for (const key of preferred) {
-          const token = extract(store.getItem(key));
-          if (token) return token;
-        }
-        for (let i=0; i<store.length; i++) {
-          const key=store.key(i);
-          const token=extract(store.getItem(key));
-          if (token && token.split('.').length === 3) return token;
-        }
+    // 復元：背景（暗い部分）クリックでモーダルを閉じる汎用関数
+    function handleBackdropClick(e, closeFunc) {
+      if (e.target.classList.contains('modal-overlay')) {
+        closeFunc();
       }
-      return "";
+    }
+
+    function getToken() { return localStorage.getItem('access_token'); }
+    function setToken(t) { localStorage.setItem('access_token', t); }
+    function removeToken() { localStorage.removeItem('access_token'); }
+
+    function updateViewState(isLoggedIn) {
+      if (isLoggedIn) {
+        landingView.classList.add('hidden');
+        appView.classList.remove('hidden');
+      } else {
+        appView.classList.add('hidden');
+        landingView.classList.remove('hidden');
+      }
+    }
+
+    async function checkAuth() {
+      const token = getToken();
+      if (!token) {
+        updateViewState(false);
+        renderAuthUI(null);
+        return;
+      }
+      try {
+        const res = await fetch('/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          currentUser = await res.json();
+          updateViewState(true);
+          renderAuthUI(currentUser);
+          loadNotifications();
+          loadSpots();
+        } else {
+          removeToken();
+          updateViewState(false);
+          renderAuthUI(null);
+        }
+      } catch (e) {
+        updateViewState(false);
+        renderAuthUI(null);
+      }
+    }
+
+    // 復元：通知リストの読み込み
+    async function loadNotifications() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch('/notifications', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          const notifs = await res.json();
+          const hasUnread = notifs.some(n => !n.is_read);
+          const badge = document.getElementById('notifBadge');
+          if (badge) {
+            if (hasUnread) badge.classList.remove('hidden'); else badge.classList.add('hidden');
+          }
+
+          const listEl = document.getElementById('notificationsList');
+          if (listEl) {
+            if (notifs.length === 0) {
+              listEl.innerHTML = '<p class="text-center text-slate-400 py-6">新しい通知はありません</p>';
+            } else {
+              listEl.innerHTML = notifs.map(n => {
+                const d = new Date(n.created_at);
+                const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleString();
+                return `
+                  <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
+                      ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs text-slate-800 font-medium">${n.message}</p>
+                      <span class="text-[9px] text-slate-400 font-mono">${timeStr}</span>
+                    </div>
+                  </div>
+                `;
+              }).join('');
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    window.openNotificationsModal = async function() {
+      document.getElementById('notificationsModal').classList.remove('hidden');
+      const token = getToken();
+      if (token) {
+        await fetch('/notifications/read', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.classList.add('hidden');
+      }
+    };
+    window.closeNotificationsModal = function() { document.getElementById('notificationsModal').classList.add('hidden'); };
+
+    function renderAuthUI(user) {
+      const c = document.getElementById('authStatusContainer');
+      if (user) {
+        c.innerHTML = `
+          <div class="flex items-center gap-2">
+            <button onclick="openProfile('${user.username}')" class="navy-btn-outline text-[10px] font-bold tracking-wider px-3 py-1 rounded-full flex items-center gap-1 transition">
+              <span>👤</span><span>Account</span>
+            </button>
+            <button onclick="logout()" class="text-[9px] font-bold tracking-wider text-slate-400 hover:text-slate-900 uppercase transition">
+              LOGOUT
+            </button>
+          </div>
+        `;
+      } else {
+        c.innerHTML = '';
+      }
+    }
+
+    window.logout = function() {
+      removeToken();
+      currentUser = null;
+      renderAuthUI(null);
+      updateViewState(false);
     };
 
-    const token = findToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
+    let isGateRegisterMode = false;
+    const gateToggleBtn = document.getElementById('gateToggleBtn');
+    const gateTitle = document.getElementById('gateTitle');
+    const gateSubmitBtn = document.getElementById('gateSubmitBtn');
+    const gateEmailContainer = document.getElementById('gateEmailContainer');
+    const gateDisplayNameContainer = document.getElementById('gateDisplayNameContainer');
+    const gateAuthForm = document.getElementById('gateAuthForm');
+    const gateStatusMessage = document.getElementById('gateStatusMessage');
+    const gateUsername = document.getElementById('gateUsername');
+    const gatePassword = document.getElementById('gatePassword');
+    const gateEmail = document.getElementById('gateEmail');
+    const gateDisplayName = document.getElementById('gateDisplayName');
 
-    const response = await fetch("/spots/upload", {
-      method: "POST",
-      headers,
-      body: formData,
-      credentials: "include"
+    function setGateStatus(message = '', type = 'info') {
+      if (!gateStatusMessage) return;
+      if (!message) {
+        gateStatusMessage.textContent = '';
+        gateStatusMessage.className = 'hidden mt-3 rounded-xl border px-3 py-2 text-[11px] leading-relaxed';
+        return;
+      }
+      gateStatusMessage.textContent = message;
+      const styles = {
+        info: 'bg-slate-50 border-slate-200 text-slate-600',
+        success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+        error: 'bg-rose-50 border-rose-200 text-rose-700'
+      };
+      gateStatusMessage.className = `mt-3 rounded-xl border px-3 py-2 text-[11px] leading-relaxed ${styles[type] || styles.info}`;
+    }
+
+    function setGateMode(registerMode) {
+      isGateRegisterMode = registerMode;
+      if (registerMode) {
+        gateTitle.innerText = 'CREATE TRAVEL ARCHIVE';
+        gateSubmitBtn.innerText = 'Create Account';
+        gateEmailContainer.classList.remove('hidden');
+        gateDisplayNameContainer.classList.remove('hidden');
+        gateEmail.required = true;
+        gateDisplayName.required = true;
+        gateToggleBtn.innerText = 'すでにアカウントをお持ちの方はこちら（ログイン）';
+      } else {
+        gateTitle.innerText = 'SIGN IN TO YOUR LOG';
+        gateSubmitBtn.innerText = 'Enter Travel Log';
+        gateEmailContainer.classList.add('hidden');
+        gateDisplayNameContainer.classList.add('hidden');
+        gateEmail.required = false;
+        gateDisplayName.required = false;
+        gateToggleBtn.innerText = 'アカウントを新規作成する';
+      }
+    }
+
+    gateToggleBtn?.addEventListener('click', () => {
+      setGateStatus('');
+      setGateMode(!isGateRegisterMode);
     });
 
-    const raw = await response.text();
-    let data = {};
-    try { data = raw ? JSON.parse(raw) : {}; }
-    catch (_) { data = { detail: raw }; }
-
-    if (!response.ok) {
-      throw new Error(data.detail || data.message || `投稿に失敗しました (HTTP ${response.status})`);
+    async function readResponseBody(response) {
+      const text = await response.text();
+      if (!text) return {};
+      try { return JSON.parse(text); } catch (_) { return { detail: text }; }
     }
 
-    window.location.assign("/");
-  } catch (error) {
-    alert(error.message || "投稿に失敗しました。");
-  } finally {
-    submitButton.disabled = false;
-    submitButton.textContent = originalText;
-  }
-});
-
-async function loadPosts() {
-  try {
-    const response = await fetch("/api/posts");
-    const posts = await response.json();
-    if (!response.ok) throw new Error(posts.detail || "投稿の取得に失敗しました。");
-
-    feed.innerHTML = "";
-
-    if (!posts.length) {
-      feed.innerHTML = '<div class="empty">まだ投稿がありません。最初の1枚を残してみよう。</div>';
-      return;
+    function readableAuthError(data, fallback) {
+      if (!data) return fallback;
+      if (typeof data.detail === 'string') return data.detail;
+      if (typeof data.message === 'string') return data.message;
+      if (Array.isArray(data.detail)) return data.detail.map(item => item?.msg || item?.message || String(item)).join(' / ');
+      return fallback;
     }
 
-    posts.forEach((post) => {
-      const article = document.createElement("article");
-      article.className = "post";
-      const music = post.music;
-      const musicMarkup = music ? `
-        <button
-          type="button"
-          class="music-overlay music-play-button"
-          data-video-id="${escapeHtml(music.youtube_video_id || "")}"
-          data-title="${escapeHtml(music.title || "")}"
-          data-url="${escapeHtml(music.external_url || "")}">
-          ${music.cover_url ? `<img src="${escapeHtml(music.cover_url)}" alt="">` : ""}
-          <span class="meta">
-            <span class="title">${escapeHtml(decodeEntities(music.title || ""))}</span>
-            <span class="artist">${escapeHtml(decodeEntities(music.artist || ""))} · YouTube</span>
-          </span>
-        </button>` : "";
-
-      article.innerHTML = `
-        <div class="post-image-wrap">
-          <img class="post-image" src="${escapeHtml(post.image_url)}" alt="投稿画像">
-          ${musicMarkup}
-        </div>
-        <div class="post-body">
-          ${post.caption ? `<p class="post-caption">${escapeHtml(post.caption)}</p>` : ""}
-          <p class="post-date">${formatDate(post.created_at)}</p>
-        </div>
-      `;
-
-      const playButton = article.querySelector(".music-play-button");
-      if (playButton) {
-        playButton.addEventListener("click", () => {
-          openPlayer(
-            playButton.dataset.videoId,
-            decodeEntities(playButton.dataset.title || "YouTube"),
-            playButton.dataset.url
-          );
+    async function requestLogin(username, password) {
+      let response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      let data = await readResponseBody(response);
+      if (!response.ok && [400, 415, 422].includes(response.status)) {
+        const body = new URLSearchParams();
+        body.set('username', username);
+        body.set('password', password);
+        response = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
         });
+        data = await readResponseBody(response);
+      }
+      return { response, data };
+    }
+
+    async function resolveLoggedInUser(accessToken, fallbackUser = null) {
+      if (fallbackUser && fallbackUser.username) return fallbackUser;
+      const meResponse = await fetch('/auth/me', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+      if (!meResponse.ok) return fallbackUser;
+      return await readResponseBody(meResponse);
+    }
+
+    async function completeLogin(accessToken, userData = null) {
+      if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+        throw new Error('ログイン用トークンを取得できませんでした。');
+      }
+      setToken(accessToken);
+      const resolvedUser = await resolveLoggedInUser(accessToken, userData);
+      if (!resolvedUser || !resolvedUser.username) {
+        removeToken();
+        throw new Error('ユーザー情報を取得できませんでした。');
+      }
+      currentUser = resolvedUser;
+      updateViewState(true);
+      renderAuthUI(currentUser);
+      gateAuthForm.reset();
+      setGateStatus('');
+      loadNotifications();
+      loadSpots();
+    }
+
+    gateAuthForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = gateUsername.value.trim();
+      const password = gatePassword.value;
+      const email = gateEmail.value.trim();
+      const displayName = gateDisplayName.value.trim();
+
+      if (!username) { setGateStatus('User ID を入力してください。', 'error'); gateUsername.focus(); return; }
+      if (!password) { setGateStatus('Password を入力してください。', 'error'); gatePassword.focus(); return; }
+
+      gateSubmitBtn.disabled = true;
+      gateToggleBtn.disabled = true;
+      setGateStatus(isGateRegisterMode ? 'アカウントを作成しています...' : 'ログインしています...', 'info');
+
+      try {
+        if (isGateRegisterMode) {
+          const registerPayload = { username, password, email, display_name: displayName };
+          const registerResponse = await fetch('/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(registerPayload)
+          });
+          const registerData = await readResponseBody(registerResponse);
+          if (!registerResponse.ok) {
+            throw new Error(readableAuthError(registerData, `アカウント作成に失敗しました (HTTP ${registerResponse.status})`));
+          }
+          if (registerData.access_token) {
+            await completeLogin(registerData.access_token, registerData.user || registerData);
+            return;
+          }
+          setGateStatus('アカウントを作成しました。ログイン処理を続けています...', 'success');
+          const { response: loginResponse, data: loginData } = await requestLogin(username, password);
+          if (loginResponse.ok && loginData.access_token) {
+            await completeLogin(loginData.access_token, loginData.user);
+            return;
+          }
+          setGateMode(false);
+          gateUsername.value = username;
+          gatePassword.value = '';
+          setGateStatus('アカウントの作成は完了しました。作成したパスワードでログインしてください。', 'success');
+          return;
+        }
+
+        const { response, data } = await requestLogin(username, password);
+        if (!response.ok) throw new Error(readableAuthError(data, `ログインに失敗しました (HTTP ${response.status})`));
+        if (!data.access_token) throw new Error('ログインには成功しましたが、認証トークンが返されませんでした。');
+
+        await completeLogin(data.access_token, data.user);
+      } catch (err) {
+        setGateStatus(err?.message || '通信エラーが発生しました。', 'error');
+      } finally {
+        gateSubmitBtn.disabled = false;
+        gateToggleBtn.disabled = false;
+        gateSubmitBtn.innerText = isGateRegisterMode ? 'Create Account' : 'Enter Travel Log';
+      }
+    });
+
+    window.openUserSearchModal = function() {
+      document.getElementById('userSearchModal').classList.remove('hidden');
+      document.getElementById('userSearchInput').focus();
+    };
+    window.closeUserSearchModal = function() { document.getElementById('userSearchModal').classList.add('hidden'); };
+
+    window.executeUserSearch = async function() {
+      const q = document.getElementById('userSearchInput').value.trim();
+      if (!q) return;
+
+      const token = getToken();
+      const res = await fetch(`/users/search?q=${encodeURIComponent(q)}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+
+      const listEl = document.getElementById('userSearchResults');
+      if (!res.ok) { listEl.innerHTML = '<p class="text-center text-slate-400 py-6">エラーが発生しました</p>'; return; }
+
+      const users = await res.json();
+      if (users.length === 0) {
+        listEl.innerHTML = '<p class="text-center text-slate-400 py-6">見つかりませんでした</p>';
+        return;
       }
 
-      feed.appendChild(article);
+      listEl.innerHTML = users.map(u => `
+        <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserSearchModal(); openProfile('${u.username}');">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+              ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
+            </div>
+            <div>
+              <p class="font-bold text-slate-900 leading-none">${u.display_name || u.username}</p>
+              <p class="text-[10px] text-slate-400 font-mono mt-0.5">@${u.username}</p>
+            </div>
+          </div>
+          <span class="text-[10px] text-slate-800 font-bold">VIEW ↗</span>
+        </div>
+      `).join('');
+    };
+
+    window.openConversationsModal = async function() {
+      const token = getToken();
+      const res = await fetch('/messages/conversations', { headers: { 'Authorization': `Bearer ${token}` } });
+      const listEl = document.getElementById('conversationsList');
+      if (res.ok) {
+        const users = await res.json();
+        if (users.length === 0) {
+          listEl.innerHTML = '<p class="text-center text-slate-400 py-6">メッセージのやり取りはありません<br><span class="text-[10px]">ユーザー検索からDMを送ってみましょう！</span></p>';
+        } else {
+          listEl.innerHTML = users.map(u => `
+            <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeConversationsModal(); openDmChat('${u.username}');">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                  ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
+                </div>
+                <div>
+                  <p class="font-bold text-slate-900 leading-none">${u.display_name || u.username}</p>
+                  <p class="text-[10px] text-slate-400 font-mono mt-0.5">@${u.username}</p>
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-800 font-bold">OPEN ↗</span>
+            </div>
+          `).join('');
+        }
+      }
+      document.getElementById('conversationsModal').classList.remove('hidden');
+    };
+    window.closeConversationsModal = function() { document.getElementById('conversationsModal').classList.add('hidden'); };
+
+    // 復元：フォロー/フォロワー一覧モーダルの表示ロジック
+    window.openUserListModal = async function(type) {
+      if (!currentProfileUsername) return;
+      const titleEl = document.getElementById('userListModalTitle');
+      const contentEl = document.getElementById('userListContent');
+      
+      titleEl.innerText = type === 'following' ? 'FOLLOWING' : 'FOLLOWERS';
+      contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">読み込み中...</p>';
+      document.getElementById('userListModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/users/${encodeURIComponent(currentProfileUsername)}/${type}`);
+        if (!res.ok) {
+          contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">一覧を取得できませんでした</p>';
+          return;
+        }
+        const users = await res.json();
+        if (users.length === 0) {
+          contentEl.innerHTML = `<p class="text-center text-slate-400 py-6">${type === 'following' ? 'フォロー中のユーザーはいません' : 'フォロワーはいません'}</p>`;
+          return;
+        }
+
+        contentEl.innerHTML = users.map(u => `
+          <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); closeProfileModal(); openProfile('${encodeURIComponent(u.username)}');">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
+              </div>
+              <div>
+                <p class="font-bold text-slate-900 leading-none">${u.display_name || u.username}</p>
+                <p class="text-[10px] text-slate-400 font-mono mt-0.5">@${u.username}</p>
+              </div>
+            </div>
+            <span class="text-[10px] text-slate-800 font-bold">VIEW ↗</span>
+          </div>
+        `).join('');
+      } catch (e) {
+        contentEl.innerHTML = '<p class="text-center text-slate-400 py-6">エラーが発生しました</p>';
+      }
+    };
+    window.closeUserListModal = function() { document.getElementById('userListModal').classList.add('hidden'); };
+
+    window.switchFeedTab = function(tab) {
+      currentFeedTab = tab;
+      const tabAll = document.getElementById('tabAll');
+      const tabFollowing = document.getElementById('tabFollowing');
+
+      if (tab === 'all') {
+        tabAll.className = "pb-2 text-slate-900 border-b-2 border-slate-900 font-bold";
+        tabFollowing.className = "pb-2 text-slate-400 hover:text-slate-700 font-medium";
+      } else {
+        tabAll.className = "pb-2 text-slate-400 hover:text-slate-700 font-medium";
+        tabFollowing.className = "pb-2 text-slate-900 border-b-2 border-slate-900 font-bold";
+      }
+      loadSpots(dateFilterEl.value);
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+    }
+
+    function parseSpotMusic(memoValue) {
+      const raw = String(memoValue || '');
+      const lines = raw.split(/\r?\n/);
+      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?[^\s]*?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/i;
+
+      const musicLineIndex = lines.findIndex(line => line.trim().startsWith('🎵'));
+      const urlLineIndex = lines.findIndex(line => youtubeRegex.test(line.trim()));
+
+      if (musicLineIndex < 0 && urlLineIndex < 0) return { memo: raw.trim(), music: null };
+
+      const urlLine = urlLineIndex >= 0 ? lines[urlLineIndex].trim() : '';
+      const urlMatch = urlLine.match(youtubeRegex);
+      if (!urlMatch) return { memo: raw.trim(), music: null };
+
+      const videoId = urlMatch[1];
+      const externalUrl = urlLine.startsWith('http') ? urlLine : `https://www.youtube.com/watch?v=${videoId}`;
+      let musicLine = musicLineIndex >= 0 ? lines[musicLineIndex].trim().replace(/^🎵\s*/, '') : 'YouTube';
+
+      let title = musicLine || 'この投稿の1曲';
+      let artist = 'YouTube';
+
+      const separatorIndex = title.lastIndexOf(' — ');
+      if (separatorIndex > 0) {
+        artist = title.slice(separatorIndex + 3).trim() || 'YouTube';
+        title = title.slice(0, separatorIndex).trim() || 'この投稿の1曲';
+      }
+
+      const cleanMemo = lines.filter((_, index) => index !== musicLineIndex && index !== urlLineIndex).join('\n').trim();
+      return { memo: cleanMemo, music: { videoId, externalUrl, title, artist } };
+    }
+
+    function renderHomeSongCard(music) {
+      if (!music) return '';
+      const videoId = escapeHtml(music.videoId);
+      const title = escapeHtml(music.title);
+      const artist = escapeHtml(music.artist);
+      const externalUrl = escapeHtml(music.externalUrl);
+      const thumb = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+
+      return `
+        <div class="home-song-card">
+          <div class="home-song-row">
+            <img class="home-song-thumb" src="${thumb}" alt="">
+            <div class="home-song-meta">
+              <span class="home-song-kicker">TODAY'S SONG</span>
+              <strong class="home-song-title">${title}</strong>
+              <span class="home-song-artist">${artist}</span>
+            </div>
+            <button type="button" class="home-song-play" data-video-id="${videoId}" aria-label="この投稿の音楽を再生">▶</button>
+          </div>
+          <div class="home-song-player">
+            <div class="home-song-player-ratio">
+              <iframe title="YouTube player" src="" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </div>
+            <div class="home-song-player-bottom">
+              <span>この投稿の音楽</span>
+              <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">YouTubeで開く ↗</a>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function closeAllHomeSongPlayers(exceptCard = null) {
+      feedEl.querySelectorAll('.home-song-card').forEach(card => {
+        if (card === exceptCard) return;
+        const player = card.querySelector('.home-song-player');
+        const iframe = card.querySelector('iframe');
+        const button = card.querySelector('.home-song-play');
+
+        player?.classList.remove('is-open');
+        if (iframe) iframe.src = '';
+        if (button) {
+          button.classList.remove('is-playing');
+          button.textContent = '▶';
+        }
+      });
+    }
+
+    function wireHomeSongPlayers() {
+      feedEl.querySelectorAll('.home-song-play').forEach(button => {
+        button.addEventListener('click', () => {
+          const card = button.closest('.home-song-card');
+          if (!card) return;
+          const player = card.querySelector('.home-song-player');
+          const iframe = card.querySelector('iframe');
+          const videoId = button.dataset.videoId;
+          const opening = !player.classList.contains('is-open');
+
+          if (!opening) {
+            player.classList.remove('is-open');
+            iframe.src = '';
+            button.classList.remove('is-playing');
+            button.textContent = '▶';
+            return;
+          }
+
+          closeAllHomeSongPlayers(card);
+          iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0`;
+          player.classList.add('is-open');
+          button.classList.add('is-playing');
+          button.textContent = '■';
+        });
+      });
+    }
+
+    async function loadSpots(date = '') {
+      feedEl.innerHTML = '<p class="text-center text-xs text-slate-400 py-12 tracking-widest uppercase font-medium">Loading...</p>';
+      const token = getToken();
+      let url = `/spots?feed_type=${currentFeedTab}`;
+      if (date) url += `&target_date=${date}`;
+
+      const res = await fetch(url, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+      const spots = await res.json();
+
+      if (!Array.isArray(spots) || spots.length === 0) {
+        feedEl.innerHTML = `
+          <div class="text-center py-16 border border-dashed border-slate-300 rounded-2xl bg-white/50">
+            <p class="text-xs text-slate-400 tracking-[0.2em] font-semibold uppercase">No Logs Archived</p>
+          </div>
+        `;
+        return;
+      }
+
+      feedEl.innerHTML = spots.map(s => {
+        const visitDate = new Date(s.visited_at);
+        const dateText = `${visitDate.getFullYear()}.${String(visitDate.getMonth() + 1).padStart(2, '0')}.${String(visitDate.getDate()).padStart(2, '0')}`;
+        const timeText = visitDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const avatarBg = s.author_avatar_url ? `style="background-image: url('${s.author_avatar_url}')"` : '';
+        const parsedMemo = parseSpotMusic(s.memo);
+        const musicCard = renderHomeSongCard(parsedMemo.music);
+
+        return `
+          <article class="navy-card tl-post-card rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-white">
+              <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${s.username}')">
+                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
+                  ${!s.author_avatar_url ? (s.display_name || s.username).charAt(0).toUpperCase() : ''}
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-slate-900 leading-none">${s.display_name || s.username}</span>
+                    <span class="text-[10px] text-slate-400 font-mono">@${s.username}</span>
+                  </div>
+                  <h2 class="font-bold text-xs text-slate-800 tracking-wide mt-1">${s.name}</h2>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <a href="${s.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline tl-map-btn text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 font-mono">
+                  <span>MAP</span><span>↗</span>
+                </a>
+                ${currentUser && currentUser.username === s.username ? `
+                  <button onclick="deleteSpot('${s.id}')" class="text-slate-300 hover:text-rose-600 p-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+
+            ${s.media_url ? (
+              s.media_type === 'video' 
+                ? `<video src="${s.media_url}" controls class="w-full max-h-[440px] object-cover bg-black"></video>`
+                : `<img src="${s.media_url}" class="w-full max-h-[440px] object-cover border-b border-slate-100" />`
+            ) : ''}
+
+            <div class="p-4 bg-white">
+              <div class="flex items-center justify-between mb-2">
+                <button onclick="toggleSpotLike('${s.id}', this)" class="flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-950">
+                  <svg class="w-4 h-4 heart-icon transition-colors ${s.is_liked ? 'text-rose-500 fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  <span class="like-count font-mono font-bold text-xs">${s.likes_count}</span>
+                </button>
+                <span class="text-[10px] text-slate-400 font-mono">${dateText} ${timeText}</span>
+              </div>
+              ${musicCard}
+              ${parsedMemo.memo ? `<p class="text-xs text-slate-600 leading-relaxed">${escapeHtml(parsedMemo.memo).replace(/\n/g, '<br>')}</p>` : ''}
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      wireHomeSongPlayers();
+    }
+
+    window.toggleSpotLike = async function(spotId, btn) {
+      const token = getToken();
+      if (!token) return;
+
+      const res = await fetch(`/spots/${spotId}/like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const heart = btn.querySelector('.heart-icon');
+        const countEl = btn.querySelector('.like-count');
+        countEl.innerText = data.likes_count;
+        if (data.liked) {
+          heart.classList.add('text-rose-500', 'fill-current');
+        } else {
+          heart.classList.remove('text-rose-500', 'fill-current');
+        }
+      }
+    };
+
+    window.openProfile = async function(username) {
+      currentProfileUsername = username;
+      const token = getToken();
+      const res = await fetch(`/users/${username}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (!res.ok) return;
+      const user = await res.json();
+
+      document.getElementById('profileDisplayName').innerText = user.display_name || user.username;
+      document.getElementById('profileUsername').innerText = `@${user.username}`;
+      document.getElementById('profileBio').innerText = user.bio || '自己紹介がまだ記入されていません';
+      document.getElementById('profileFollowingCount').innerText = user.following_count;
+      document.getElementById('profileFollowersCount').innerText = user.followers_count;
+
+      const avatarEl = document.getElementById('profileAvatar');
+      if (user.avatar_url) {
+        avatarEl.style.backgroundImage = `url('${user.avatar_url}')`;
+        avatarEl.innerText = '';
+      } else {
+        avatarEl.style.backgroundImage = 'none';
+        avatarEl.innerText = (user.display_name || user.username).charAt(0).toUpperCase();
+      }
+
+      const coverEl = document.getElementById('profileCover');
+      coverEl.style.backgroundImage = user.cover_url ? `url('${user.cover_url}')` : 'none';
+
+      const act = document.getElementById('profileActionContainer');
+      if (currentUser && currentUser.username === user.username) {
+        act.innerHTML = `<button onclick="openEditProfile()" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">EDIT PROFILE</button>`;
+      } else {
+        act.innerHTML = `
+          <button onclick="toggleFollowUser('${user.username}')" class="navy-btn text-[10px] font-bold px-3 py-1 rounded-full">
+            ${user.is_following ? 'フォロー中' : 'フォロー'}
+          </button>
+          <button onclick="openDmChat('${user.username}')" class="navy-btn-outline text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span>✉️</span><span>DM</span>
+          </button>
+        `;
+      }
+
+      document.getElementById('profileModal').classList.remove('hidden');
+    };
+
+    window.closeProfileModal = function() { document.getElementById('profileModal').classList.add('hidden'); };
+
+    window.toggleFollowUser = async function(username) {
+      const token = getToken();
+      const res = await fetch(`/users/${username}/follow`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) openProfile(username);
+    };
+
+    window.openEditProfile = function() {
+      closeProfileModal();
+      document.getElementById('editDisplayName').value = currentUser.display_name || '';
+      document.getElementById('editBio').value = currentUser.bio || '';
+      document.getElementById('editProfileModal').classList.remove('hidden');
+    };
+
+    window.closeEditProfileModal = function() { document.getElementById('editProfileModal').classList.add('hidden'); };
+
+    document.getElementById('editProfileForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const token = getToken();
+      const formData = new FormData(e.target);
+      const res = await fetch('/users/profile', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) {
+        currentUser = await res.json();
+        renderAuthUI(currentUser);
+        closeEditProfileModal();
+        openProfile(currentUser.username);
+        loadSpots();
+      }
     });
-  } catch (error) {
-    feed.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
-  }
-}
 
-function openPlayer(videoId, title, externalUrl) {
-  if (!/^[A-Za-z0-9_-]{11}$/.test(videoId || "")) return;
-  playerTitle.textContent = title || "YouTubeで再生";
-  youtubePlayer.src = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&rel=0`;
-  openYouTube.href = externalUrl || `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
-  playerModal.classList.remove("hidden");
-  document.body.classList.add("modal-open");
-}
+    window.openDmChat = async function(username) {
+      activeDmPartner = username;
+      closeProfileModal();
+      document.getElementById('dmPartnerTitle').innerText = `@${username} とのDM`;
+      document.getElementById('dmModal').classList.remove('hidden');
+      loadDmMessages();
+    };
 
-function closePlayer() {
-  youtubePlayer.src = "";
-  playerModal.classList.add("hidden");
-  document.body.classList.remove("modal-open");
-}
+    window.closeDmModal = function() {
+      document.getElementById('dmModal').classList.add('hidden');
+      activeDmPartner = null;
+    };
 
-function formatDate(value) {
-  if (!value) return "";
-  return new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
-  }).format(new Date(value));
-}
+    async function loadDmMessages() {
+      if (!activeDmPartner) return;
+      const token = getToken();
+      const res = await fetch(`/messages/${activeDmPartner}`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) {
+        const msgs = await res.json();
+        const list = document.getElementById('dmMessageList');
+        list.innerHTML = msgs.map(m => {
+          const isMe = m.sender_username === currentUser.username;
+          return `
+            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+              <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
+                ${m.content}
+              </div>
+            </div>
+          `;
+        }).join('');
+        list.scrollTop = list.scrollHeight;
+      }
+    }
 
-function decodeEntities(value) {
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = String(value ?? "");
-  return textarea.value;
-}
+    document.getElementById('dmSendForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('dmInput');
+      const content = input.value.trim();
+      if (!content || !activeDmPartner) return;
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+      const token = getToken();
+      const res = await fetch('/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ recipient_username: activeDmPartner, content })
+      });
+      if (res.ok) {
+        input.value = '';
+        loadDmMessages();
+      }
+    });
 
-// Demo feed disabled. Real posts are shown on the Travel Log home page.
+    window.deleteSpot = async function(spotId) {
+      if (!confirm('この思い出を削除しますか？')) return;
+      const token = getToken();
+      const res = await fetch(`/spots/${spotId}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res.ok) loadSpots(dateFilterEl.value);
+    };
 
-</script>
+    dateFilterEl?.addEventListener('change', (e) => loadSpots(e.target.value));
+    clearDateEl?.addEventListener('click', () => { dateFilterEl.value = ''; loadSpots(); });
+
+    checkAuth();
+  </script>
 </body>
 </html>
