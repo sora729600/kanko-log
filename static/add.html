@@ -71,6 +71,81 @@
     .btn-submit:hover {
       background-color: var(--tl-btn-primary-hover);
     }
+
+    /* 共有いただいた写真オーバーレイ用スタイル */
+    .preview-wrap {
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      background: #ecece8;
+    }
+    .preview-wrap > img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+    .music-overlay {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 15px;
+      background: rgba(18,18,18,.78);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      box-shadow: 0 8px 28px rgba(0,0,0,.22);
+    }
+    .music-overlay img {
+      width: 62px;
+      height: 35px;
+      object-fit: cover;
+      border-radius: 7px;
+      flex: 0 0 auto;
+    }
+    .music-overlay .meta {
+      min-width: 0;
+      display: block;
+      text-align: left;
+    }
+    .music-overlay .title {
+      display: block;
+      font-weight: 800;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #ffffff;
+    }
+    .music-overlay .artist {
+      display: block;
+      color: rgba(255,255,255,.75);
+      font-size: 11px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .track-item {
+      display: grid;
+      grid-template-columns: 80px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border: 1px solid #e4e4df;
+      background: #fff;
+      border-radius: 12px;
+    }
+    .track-item img {
+      width: 80px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body class="p-3 sm:p-6 flex justify-center items-center">
@@ -104,14 +179,21 @@
     <!-- フォーム本体 -->
     <form id="postForm" class="space-y-6">
 
-      <!-- 1. 写真添付 -->
+      <!-- 1. 写真選択 ＆ リアルタイムプレビュー（オーバーレイ対応） -->
       <div class="space-y-2">
         <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
           <span class="w-5 h-5 rounded-md bg-slate-200 flex items-center justify-center text-[10px]">🖼️</span>
           <span>写真</span>
         </div>
-        <div class="p-2 bg-white rounded-2xl border border-[#e2ddd7] flex items-center">
-          <input type="file" name="file" accept="image/*,video/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+        
+        <div class="p-2 bg-white rounded-2xl border border-[#e2ddd7]">
+          <input type="file" id="imageInput" name="file" accept="image/*,video/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+        </div>
+
+        <!-- プレビュー＆写真の上に重ねる音楽カード -->
+        <div id="previewWrap" class="preview-wrap hidden mt-3">
+          <img id="imagePreview" alt="投稿画像プレビュー">
+          <div id="musicOverlay" class="music-overlay hidden"></div>
         </div>
       </div>
 
@@ -159,9 +241,12 @@
 
       <!-- 5. 音楽を追加 (YouTube検索) -->
       <div class="custom-section p-4 sm:p-5 space-y-3 relative overflow-hidden">
-        <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
-          <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[10px]">🎵</span>
-          <span>音楽を追加</span>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+            <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[10px]">🎵</span>
+            <span>音楽を追加</span>
+          </div>
+          <button type="button" id="clearMusic" onclick="clearMusicSelection()" class="text-xs text-rose-500 font-bold hidden">選択解除 ✕</button>
         </div>
 
         <div class="flex gap-2">
@@ -172,19 +257,11 @@
           <button type="button" id="musicSearchBtn" class="btn-pill text-xs px-6 py-2.5">検索</button>
         </div>
 
-        <p class="text-[10px] text-slate-400">YouTubeから曲やMVを検索して、この日の1曲として残せます。</p>
+        <p id="musicMessage" class="text-[10px] text-slate-400">YouTubeから曲やMVを検索して、この日の1曲として残せます。</p>
 
-        <div id="musicResults" class="hidden max-h-40 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl bg-white text-xs"></div>
-        <input type="hidden" id="selectedMusicUrl" name="music_url" value="">
-        <input type="hidden" id="selectedMusicTitle" name="music_title" value="">
-
-        <div id="musicPreview" class="hidden p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
-          <span id="musicPreviewTitle" class="font-bold text-slate-800 truncate max-w-[280px]"></span>
-          <button type="button" onclick="clearMusicSelection()" class="text-rose-500 font-bold text-[10px]">削除 ✕</button>
-        </div>
+        <div id="musicResults" class="hidden space-y-2 max-h-48 overflow-y-auto text-xs"></div>
       </div>
 
-      <!-- 訪問日時 (隠しフィールド / 自動補完) -->
       <input type="hidden" id="visitedAtInput" name="visited_at">
 
       <!-- 投稿ボタン -->
@@ -200,6 +277,8 @@
   <script>
     let map = null;
     let currentMarker = null;
+    let selectedVideo = null;
+    let currentPreviewUrl = null;
 
     function getToken() { return localStorage.getItem('access_token'); }
 
@@ -209,6 +288,41 @@
       document.getElementById('visitedAtInput').value = now.toISOString().slice(0, 16);
     }
 
+    // 1. 画像プレビュー＆オーバーレイ連動
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewWrap = document.getElementById('previewWrap');
+    const musicOverlay = document.getElementById('musicOverlay');
+
+    imageInput?.addEventListener('change', () => {
+      const file = imageInput.files?.[0];
+      if (!file) return;
+
+      if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
+      currentPreviewUrl = URL.createObjectURL(file);
+      imagePreview.src = currentPreviewUrl;
+      previewWrap.classList.remove('hidden');
+      renderSelectedMusic();
+    });
+
+    function renderSelectedMusic() {
+      if (!selectedVideo || previewWrap.classList.contains('hidden')) {
+        musicOverlay.classList.add('hidden');
+        musicOverlay.innerHTML = '';
+        return;
+      }
+
+      musicOverlay.classList.remove('hidden');
+      musicOverlay.innerHTML = `
+        ${selectedVideo.cover_url ? `<img src="${escapeHtml(selectedVideo.cover_url)}" alt="">` : ''}
+        <div class="meta">
+          <div class="title">▶ ${escapeHtml(decodeEntities(selectedVideo.title || ''))}</div>
+          <div class="artist">${escapeHtml(decodeEntities(selectedVideo.artist || ''))} · YouTube</div>
+        </div>
+      `;
+    }
+
+    // 地図初期化
     function initMap() {
       map = L.map('pickerMap', { zoomControl: true }).setView([35.6812, 139.7671], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -284,78 +398,104 @@
       searchSuggestions.classList.add('hidden');
     };
 
-    searchLocationBtn.addEventListener('click', executePlaceSearch);
-    searchLocationInput.addEventListener('keydown', (e) => {
+    searchLocationBtn?.addEventListener('click', executePlaceSearch);
+    searchLocationInput?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); executePlaceSearch(); }
     });
 
-    // YouTube 音楽検索
+    // 2. YouTube 音楽検索（API / クライアントパースフォールバック）
     const musicSearchInput = document.getElementById('musicSearchInput');
     const musicSearchBtn = document.getElementById('musicSearchBtn');
     const musicResults = document.getElementById('musicResults');
+    const musicMessage = document.getElementById('musicMessage');
+    const clearMusicButton = document.getElementById('clearMusic');
 
     async function executeMusicSearch() {
       const q = musicSearchInput.value.trim();
       if (!q) return;
 
-      musicSearchBtn.innerText = '...';
-      try {
-        const res = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`);
-        const text = await res.text();
-        
-        const matches = [...text.matchAll(/"videoId":"([A-Za-z0-9_-]{11})".*?"title":{"runs":\[{"text":"(.*?)"\}\]}/g)];
-        
-        if (matches.length === 0) {
-          musicResults.innerHTML = '<div class="p-3 text-slate-400">見つかりませんでした</div>';
-          musicResults.classList.remove('hidden');
-          return;
-        }
+      musicSearchBtn.disabled = true;
+      musicMessage.innerText = 'YouTubeで検索中...';
+      musicResults.innerHTML = '';
+      musicResults.classList.remove('hidden');
 
-        const unique = [];
-        const seen = new Set();
-        for (const m of matches) {
-          if (!seen.has(m[1]) && unique.length < 5) {
-            seen.add(m[1]);
-            unique.push({ id: m[1], title: m[2] });
+      try {
+        let items = [];
+        // まずバックエンドAPI (/api/music/search) を試行
+        const apiRes = await fetch(`/api/music/search?q=${encodeURIComponent(q)}&limit=10`);
+        if (apiRes.ok) {
+          const data = await apiRes.json();
+          items = data.items || [];
+        } else {
+          // フォールバック: Direct HTML Parsing
+          const youtubeRes = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`);
+          const text = await youtubeRes.text();
+          const matches = [...text.matchAll(/"videoId":"([A-Za-z0-9_-]{11})".*?"title":{"runs":\[{"text":"(.*?)"\}\]}/g)];
+          const seen = new Set();
+          for (const m of matches) {
+            if (!seen.has(m[1]) && items.length < 6) {
+              seen.add(m[1]);
+              items.push({
+                youtube_video_id: m[1],
+                title: m[2],
+                artist: 'YouTube',
+                cover_url: `https://i.ytimg.com/vi/${m[1]}/mqdefault.jpg`,
+                external_url: `https://www.youtube.com/watch?v=${m[1]}`
+              });
+            }
           }
         }
 
-        musicResults.innerHTML = unique.map(item => `
-          <div class="p-2.5 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between text-slate-700"
-               onclick="selectMusic('${item.id}', '${item.title.replace(/'/g, "\\'")}')">
-            <span class="truncate mr-2 font-medium">${item.title}</span>
-            <span class="text-indigo-600 text-[10px] font-bold tracking-wider shrink-0">選択 🎵</span>
+        if (items.length === 0) {
+          musicMessage.innerText = '見つかりませんでした。別のキーワードで試してください。';
+          return;
+        }
+
+        musicMessage.innerText = `${items.length}件見つかりました。1曲選んでください。`;
+        musicResults.innerHTML = items.map((video, idx) => `
+          <div class="track-item">
+            <img src="${escapeHtml(video.cover_url || '')}" alt="">
+            <div class="min-w-0">
+              <div class="font-bold text-slate-800 text-xs truncate">${escapeHtml(decodeEntities(video.title || ''))}</div>
+              <div class="text-[10px] text-slate-500 truncate">${escapeHtml(decodeEntities(video.artist || ''))}</div>
+            </div>
+            <button type="button" onclick="selectTrack(${idx})" class="btn-pill text-[10px] px-3 py-1 bg-slate-900 text-white hover:bg-slate-800">選ぶ</button>
           </div>
         `).join('');
-        musicResults.classList.remove('hidden');
+
+        window._searchResults = items;
+
       } catch (err) {
-        alert('音楽検索に失敗しました');
+        musicMessage.innerText = '検索中にエラーが発生しました。';
       } finally {
-        musicSearchBtn.innerText = '検索';
+        musicSearchBtn.disabled = false;
       }
     }
 
-    window.selectMusic = function(id, title) {
-      document.getElementById('selectedMusicUrl').value = `https://www.youtube.com/watch?v=${id}`;
-      document.getElementById('selectedMusicTitle').value = title;
-      document.getElementById('musicPreviewTitle').innerText = `🎵 ${title}`;
-      document.getElementById('musicPreview').classList.remove('hidden');
+    window.selectTrack = function(index) {
+      const video = window._searchResults?.[index];
+      if (!video) return;
+
+      selectedVideo = video;
+      musicMessage.innerText = `選択中：${decodeEntities(video.title || '')} — ${decodeEntities(video.artist || '')}`;
+      clearMusicButton.classList.remove('hidden');
       musicResults.classList.add('hidden');
-      musicSearchInput.value = '';
+      renderSelectedMusic();
     };
 
     window.clearMusicSelection = function() {
-      document.getElementById('selectedMusicUrl').value = '';
-      document.getElementById('selectedMusicTitle').value = '';
-      document.getElementById('musicPreview').classList.add('hidden');
+      selectedVideo = null;
+      clearMusicButton.classList.add('hidden');
+      musicMessage.innerText = '音楽の選択を解除しました。';
+      renderSelectedMusic();
     };
 
-    musicSearchBtn.addEventListener('click', executeMusicSearch);
-    musicSearchInput.addEventListener('keydown', (e) => {
+    musicSearchBtn?.addEventListener('click', executeMusicSearch);
+    musicSearchInput?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); executeMusicSearch(); }
     });
 
-    // フォーム送信
+    // 3. フォーム送信処理（/spots/upload と統合）
     document.getElementById('postForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const token = getToken();
@@ -371,11 +511,10 @@
 
       const formData = new FormData(e.target);
 
-      const musicUrl = document.getElementById('selectedMusicUrl').value;
-      const musicTitle = document.getElementById('selectedMusicTitle').value;
-      if (musicUrl && musicTitle) {
+      if (selectedVideo) {
+        formData.append('youtube_video_id', selectedVideo.youtube_video_id || '');
         let currentMemo = formData.get('memo') || '';
-        const musicBlock = `\n\n🎵 ${musicTitle}\n${musicUrl}`;
+        const musicBlock = `\n\n🎵 ${selectedVideo.title}\nhttps://www.youtube.com/watch?v=${selectedVideo.youtube_video_id}`;
         formData.set('memo', currentMemo + musicBlock);
       }
 
@@ -399,6 +538,21 @@
         submitBtn.innerText = '投稿する';
       }
     });
+
+    function decodeEntities(value) {
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = String(value ?? '');
+      return textarea.value;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       setInitialVisitedAt();
