@@ -16,8 +16,8 @@
   <style>
     body {
       font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
-      /* 鮮やかなニュアンスカラー2Dグラデーション背景 */
-      background: linear-gradient(135deg, #f3dbe8 0%, #e3d2f2 35%, #d1e8d4 70%, #f7e6d7 100%);
+      /* 投稿画面(add.html)と同じニュアンスカラーグラデーションに完全統一 */
+      background: linear-gradient(135deg, #ede2f2 0%, #dbe8da 50%, #f2dadf 100%);
       background-attachment: fixed;
       color: #302a38;
       min-height: 100vh;
@@ -233,11 +233,10 @@
   <!-- 1. 未ログイン／ログアウト専用画面 (WELCOME GATE) -->
   <!-- ============================================== -->
   <div id="landingView" class="hidden min-h-screen flex flex-col justify-between max-w-md mx-auto p-6">
-    <div class="pt-8">
+    <div class="pt-10">
       <div class="inline-block px-3 py-1 bg-slate-900 text-white text-[9px] font-bold tracking-[0.25em] uppercase rounded-full mb-4">
         Official Life Journal
       </div>
-      <!-- 修正: WithLog へ変更 -->
       <h1 class="text-3xl font-extrabold tracking-[0.18em] text-slate-900 leading-tight uppercase">
         With<br>Log.
       </h1>
@@ -246,26 +245,8 @@
       </p>
     </div>
 
-    <div class="my-8 navy-card rounded-2xl p-5 bg-white/90 backdrop-blur-sm relative overflow-hidden">
-      <div class="text-[10px] font-mono text-slate-400 tracking-widest uppercase mb-1">Archive #01</div>
-      <div class="text-sm font-bold text-slate-900 mb-3">日々の記憶を鮮明に、シンプルに美しく。</div>
-      <div class="space-y-2 text-xs text-slate-600">
-        <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>スポット・写真・音楽を連動記録</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>鍵垢（承認制）対応のフレンド機能</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>大切な日常が並ぶストーリートレイ</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-white/95 backdrop-blur border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
+    <!-- ログイン／新規作成カード -->
+    <div class="my-auto my-6 bg-white/95 backdrop-blur border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
       <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-4">
         <h2 id="gateTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">SIGN IN TO WITHLOG</h2>
         <span class="text-[10px] font-mono text-slate-400">AUTHENTICATION</span>
@@ -304,7 +285,7 @@
       </div>
     </div>
 
-    <div class="py-6 text-center text-[10px] tracking-widest text-slate-400 font-mono">
+    <div class="pb-6 text-center text-[10px] tracking-widest text-slate-400 font-mono">
       &copy; 2026 WITHLOG ARCHIVE
     </div>
   </div>
@@ -315,7 +296,7 @@
   <!-- ============================================== -->
   <div id="appView" class="hidden max-w-md mx-auto min-h-screen flex flex-col justify-between pb-12">
 
-    <!-- トップヘッダー（修正: WithLog） -->
+    <!-- トップヘッダー -->
     <header class="sticky top-0 z-10 bg-white/90 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
       <div>
         <h1 class="text-base font-bold tracking-[0.2em] text-slate-900 uppercase cursor-pointer" onclick="switchFeedTab('all')">WithLog</h1>
@@ -525,7 +506,6 @@
           </div>
 
           <div class="flex items-start gap-3.5">
-            <!-- プロフィールアイコンを完全な円形に修正 (rounded-full) -->
             <div id="profileAvatar" class="w-14 h-14 rounded-full border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
             
             <div class="flex-1 min-w-0">
@@ -1036,7 +1016,6 @@
       }
     });
 
-    // 修正: リスト内のユーザーアイコンを完全な丸（rounded-full）へ更新
     window.openUserListModal = async function(type) {
       if (!currentProfileUser) return;
 
@@ -1064,7 +1043,6 @@
         containerEl.innerHTML = users.map(u => `
           <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); openProfile('${encodeURIComponent(u.username)}');">
             <div class="flex items-center gap-2.5">
-              <!-- アイコンを完全丸型 (rounded-full) に修正 -->
               <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs shrink-0" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
                 ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
               </div>
