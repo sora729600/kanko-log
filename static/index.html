@@ -88,6 +88,7 @@
     background: rgba(255, 250, 247, 0.92) !important;
     border-bottom: 2px solid var(--tl-ink) !important;
     box-shadow: 0 4px 0 rgba(48,42,56,.10) !important;
+    z-index: 20 !important;
   }
   #openModalBtn {
     border: 2px solid var(--tl-ink) !important;
@@ -307,7 +308,7 @@
   <div id="appView" class="hidden max-w-md mx-auto min-h-screen flex flex-col justify-between pb-12">
 
     <!-- トップヘッダー -->
-    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
+    <header class="sticky top-0 z-20 bg-white/90 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
       <div>
         <h1 class="text-base font-bold tracking-[0.2em] text-slate-900 uppercase cursor-pointer" onclick="switchFeedTab('all')">Travel Log</h1>
         <p class="text-[9px] tracking-[0.25em] text-slate-500 uppercase font-medium">Archive of Moments</p>
