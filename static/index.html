@@ -69,6 +69,16 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+
+    /* ヘッダーの重なり順を暗い背景(z-50)より下に強制固定 */
+#appView > header {
+  z-index: 10 !important;
+}
+
+/* すべてのモーダルオーバーレイをヘッダー(z-10)より上の最前面(z-50)に強制適用 */
+.modal-overlay {
+  z-index: 50 !important;
+}
   </style>
 
   <!-- 2Dニュアンスカラー ＆ 楽曲プレイヤー スタイル -->
@@ -90,6 +100,7 @@
     box-shadow: 0 4px 0 rgba(48,42,56,.10) !important;
     z-index: 20 !important;
   }
+
   #openModalBtn {
     border: 2px solid var(--tl-ink) !important;
     background: linear-gradient(135deg, var(--tl-lav), var(--tl-sage) 52%, var(--tl-rose)) !important;
@@ -308,7 +319,7 @@
   <div id="appView" class="hidden max-w-md mx-auto min-h-screen flex flex-col justify-between pb-12">
 
     <!-- トップヘッダー -->
-    <header class="sticky top-0 z-20 bg-white/90 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
+    <header class="sticky top-0 z-10 bg-white/90 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
       <div>
         <h1 class="text-base font-bold tracking-[0.2em] text-slate-900 uppercase cursor-pointer" onclick="switchFeedTab('all')">Travel Log</h1>
         <p class="text-[9px] tracking-[0.25em] text-slate-500 uppercase font-medium">Archive of Moments</p>
