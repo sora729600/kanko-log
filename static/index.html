@@ -463,7 +463,7 @@
     </div>
 
     <!-- 改良点①: フォロー／フォロワーリスト表示モーダル -->
-    <div id="userListModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="userListModal" class="modal-overlay fixed inset-0 z-60 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 id="userListModalTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">USERS</h2>
@@ -851,7 +851,7 @@
       }
     }
 
-    // --- 通知 ---
+// --- 通知 ---
     async function loadNotifications() {
       const token = getToken();
       if (!token) return;
@@ -871,17 +871,29 @@
           if (notifs.length === 0) {
             listEl.innerHTML = '<p class="text-center text-slate-400 py-6">新しい通知はありません</p>';
           } else {
-            listEl.innerHTML = notifs.map(n => `
-              <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
-                <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
-                  ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
+            listEl.innerHTML = notifs.map(n => {
+              // UTC日時に 'Z' を補正して日本ローカル時間に変換
+              const isoString = n.created_at.endsWith('Z') ? n.created_at : n.created_at + 'Z';
+              const localTime = new Date(isoString).toLocaleString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+
+              return `
+                <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
+                  <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
+                    ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs text-slate-800 font-medium">${n.message}</p>
+                    <span class="text-[9px] text-slate-400 font-mono">${localTime}</span>
+                  </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs text-slate-800 font-medium">${n.message}</p>
-                  <span class="text-[9px] text-slate-400 font-mono">${new Date(n.created_at).toLocaleString()}</span>
-                </div>
-              </div>
-            `).join('');
+              `;
+            }).join('');
           }
         }
       } catch (e) {}
@@ -1016,7 +1028,7 @@
       }
     });
 
-    // 改良点①: フォロー／フォロワーリストを表示する関数
+// フォロー／フォロワーリストを表示する関数
     window.openUserListModal = async function(type) {
       if (!currentProfileUser) return;
       const titleEl = document.getElementById('userListModalTitle');
