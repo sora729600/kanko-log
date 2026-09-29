@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 
+import httpx
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
@@ -81,11 +82,12 @@ def init_and_fix_db():
 init_and_fix_db()
 
 # -------------------------------------------------------------
-# 2. セキュリティ & JWT
+# 2. セキュリティ & JWT & 設定
 # -------------------------------------------------------------
 SECRET_KEY = os.getenv("SECRET_KEY", "travel-log-production-secret-2026")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "AIzaSyCT1kTasVCnar-9iAPc8l5FEOKqD4HBRGw")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -127,7 +129,7 @@ manager = ConnectionManager()
 # -------------------------------------------------------------
 # 3. アプリ本体 & 静的ファイル
 # -------------------------------------------------------------
-app = FastAPI(title="Travel Log", version="1.4.0")
+app = FastAPI(title="Travel Log", version="1.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -266,7 +268,52 @@ def get_me(current_user: models.User = Depends(get_current_user)):
     }
 
 # -------------------------------------------------------------
-# 6. ストーリーバー（フォロー中）
+# 6. 音楽検索 (YouTube API v3 連携)
+# -------------------------------------------------------------
+@app.get("/api/music/search")
+async def search_music(q: str = Query(...), limit: int = Query(10)):
+    clean_q = q.strip()
+    if not clean_q:
+        return {"items": []}
+    
+    if not YOUTUBE_API_KEY:
+        raise HTTPException(status_code=500, detail="YOUTUBE_API_KEYが設定されていません。")
+
+    url = "https://www.googleapis.com/youtube/v3/search"
+    params = {
+        "key": YOUTUBE_API_KEY,
+        "q": clean_q,
+        "type": "video",
+        "part": "snippet",
+        "maxResults": limit,
+        "videoCategoryId": "10"
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, params=params)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail="YouTube API検索に失敗しました。")
+        data = resp.json()
+
+    items = []
+    for item in data.get("items", []):
+        video_id = item["id"].get("videoId")
+        snippet = item.get("snippet", {})
+        if not video_id:
+            continue
+        items.append({
+            "youtube_video_id": video_id,
+            "title": snippet.get("title", ""),
+            "artist": snippet.get("channelTitle", ""),
+            "cover_url": snippet.get("thumbnails", {}).get("medium", {}).get("url", ""),
+            "external_url": f"https://www.youtube.com/watch?v={video_id}",
+            "embed_url": f"https://www.youtube.com/embed/{video_id}"
+        })
+
+    return {"items": items}
+
+# -------------------------------------------------------------
+# 7. ストーリーバー（フォロー中）
 # -------------------------------------------------------------
 @app.get("/users/following/stories")
 def get_following_stories(db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_maybe)):
@@ -299,12 +346,13 @@ def get_following_stories(db: Session = Depends(get_db), current_user: Optional[
         return []
 
 # -------------------------------------------------------------
-# 7. スポット（旅ログ）投稿 & フィード
+# 8. スポット（旅ログ）投稿 & フィード
 # -------------------------------------------------------------
 @app.get("/spots")
 def get_spots(
     feed_type: str = "all",
     target_username: Optional[str] = None,
+    target_date: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user_maybe)
 ):
@@ -329,6 +377,14 @@ def get_spots(
             if not followed_ids:
                 return []
             query = query.filter(models.Spot.user_id.in_(followed_ids))
+
+        if target_date:
+            try:
+                dt = datetime.strptime(target_date, "%Y-%m-%d")
+                next_dt = dt + timedelta(days=1)
+                query = query.filter(and_(models.Spot.visited_at >= dt, models.Spot.visited_at < next_dt))
+            except ValueError:
+                pass
 
         spots = query.order_by(desc(models.Spot.visited_at)).all()
 
@@ -481,7 +537,7 @@ def delete_spot(spot_id: str, db: Session = Depends(get_db), current_user: model
     return {"status": "deleted"}
 
 # -------------------------------------------------------------
-# 8. プロフィール & フォロー
+# 9. プロフィール & フォロー
 # -------------------------------------------------------------
 @app.get("/users/search")
 def search_users(q: str = Query(""), db: Session = Depends(get_db)):
@@ -727,7 +783,7 @@ def update_profile(
     }
 
 # -------------------------------------------------------------
-# 9. 通知（Notifications）
+# 10. 通知（Notifications）
 # -------------------------------------------------------------
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -767,7 +823,7 @@ def mark_notifications_read(db: Session = Depends(get_db), current_user: models.
     return {"status": "ok"}
 
 # -------------------------------------------------------------
-# 10. DM (ダイレクトメッセージ & WebSocket)
+# 11. DM (ダイレクトメッセージ & WebSocket)
 # -------------------------------------------------------------
 @app.get("/messages/conversations")
 def get_conversations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -839,7 +895,6 @@ async def send_message(payload: DmCreate, db: Session = Depends(get_db), current
         "created_at": (msg.created_at.isoformat() + "Z") if msg.created_at else (datetime.utcnow().isoformat() + "Z")
     }
 
-    # 受信者および送信者（自身）の双方にリアルタイム通知
     await manager.send_personal_message(msg_data, recipient.username)
     await manager.send_personal_message(msg_data, current_user.username)
 
@@ -890,28 +945,24 @@ async def websocket_dm_endpoint(websocket: WebSocket, token: str = Query(...), d
         manager.disconnect(user.username)
 
 # -------------------------------------------------------------
-# 11. トップページ
+# 12. トップページ & フォロー/フォロワー API
 # -------------------------------------------------------------
 @app.get("/")
 def serve_index():
     index_path = os.path.join("static", "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"message": "Travel Log API is running. static/index.html was not found."}
+    return {"message": "Travel Log API is running."}
 
-# -------------------------------------------------------------
-# 12. フォロー / フォロワーリスト取得 API (UUID/Username両対応)
-# -------------------------------------------------------------
 @app.get("/api/users/{user_id}/followers")
 async def get_followers(user_id: str, db: Session = Depends(get_db)):
     clean_id = user_id.strip()
-    
     try:
         target_uuid = uuid.UUID(clean_id)
         target_user = db.query(models.User).filter(models.User.id == target_uuid).first()
     except ValueError:
         target_user = db.query(models.User).filter(
-            or_(models.User.username == clean_id, models.User.username.ilike(clean_id))
+            or_(models.User.username == clean_id, models.User.username.ilike(clean_user))
         ).first()
 
     if not target_user:
@@ -925,21 +976,17 @@ async def get_followers(user_id: str, db: Session = Depends(get_db)):
     follower_ids = [f.follower_id for f in follows if f.follower_id is not None]
     users = db.query(models.User).filter(models.User.id.in_(follower_ids)).all() if follower_ids else []
     
-    return [
-        {
-            "id": str(u.id),
-            "username": u.username,
-            "display_name": u.display_name or u.username,
-            "avatar_url": u.avatar_url,
-            "is_private": u.is_private or False
-        }
-        for u in users
-    ]
+    return [{
+        "id": str(u.id),
+        "username": u.username,
+        "display_name": u.display_name or u.username,
+        "avatar_url": u.avatar_url,
+        "is_private": u.is_private or False
+    } for u in users]
 
 @app.get("/api/users/{user_id}/following")
 async def get_following(user_id: str, db: Session = Depends(get_db)):
     clean_id = user_id.strip()
-
     try:
         target_uuid = uuid.UUID(clean_id)
         target_user = db.query(models.User).filter(models.User.id == target_uuid).first()
@@ -959,13 +1006,10 @@ async def get_following(user_id: str, db: Session = Depends(get_db)):
     following_ids = [f.followed_id for f in follows if f.followed_id is not None]
     users = db.query(models.User).filter(models.User.id.in_(following_ids)).all() if following_ids else []
     
-    return [
-        {
-            "id": str(u.id),
-            "username": u.username,
-            "display_name": u.display_name or u.username,
-            "avatar_url": u.avatar_url,
-            "is_private": u.is_private or False
-        }
-        for u in users
-    ]
+    return [{
+        "id": str(u.id),
+        "username": u.username,
+        "display_name": u.display_name or u.username,
+        "avatar_url": u.avatar_url,
+        "is_private": u.is_private or False
+    } for u in users]

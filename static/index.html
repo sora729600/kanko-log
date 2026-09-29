@@ -68,6 +68,160 @@
       scrollbar-width: none;
     }
   </style>
+
+  <!-- もう一人のデベロッパーのデザイン＆楽曲プレイヤー追加スタイル -->
+  <style id="travel-log-final-2d-music-style">
+  :root {
+    --tl-ink: #302a38;
+    --tl-muted: #7a7180;
+    --tl-paper: #fffaf7;
+    --tl-lav: #b8a8c8;
+    --tl-sage: #adbea9;
+    --tl-rose: #cba8b1;
+    --tl-soft-lav: #eee5f0;
+    --tl-soft-sage: #e2ebe0;
+    --tl-soft-rose: #f0e0e4;
+  }
+  #appView > header {
+    background: #fffaf7 !important;
+    border-bottom: 2px solid var(--tl-ink) !important;
+    box-shadow: 0 4px 0 rgba(48,42,56,.10) !important;
+  }
+  #openModalBtn {
+    border: 2px solid var(--tl-ink) !important;
+    background: linear-gradient(135deg, var(--tl-lav), var(--tl-sage) 52%, var(--tl-rose)) !important;
+    color: #fff !important;
+    box-shadow: 3px 3px 0 rgba(48,42,56,.20) !important;
+  }
+  .tl-filter-card {
+    border: 2px solid rgba(48,42,56,.82) !important;
+    border-radius: 19px !important;
+    background: linear-gradient(90deg, rgba(238,229,240,.95), #fffaf7 48%, rgba(226,235,224,.96)) !important;
+    box-shadow: 4px 4px 0 rgba(48,42,56,.10) !important;
+  }
+  .tl-post-card {
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--tl-ink) !important;
+    border-radius: 24px !important;
+    background: var(--tl-paper) !important;
+    box-shadow: 6px 7px 0 rgba(81,69,88,.17) !important;
+  }
+  .tl-post-card::before {
+    content: "";
+    position: absolute;
+    z-index: 5;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 5px;
+    background: linear-gradient(90deg, var(--tl-lav), var(--tl-sage), var(--tl-rose));
+    pointer-events: none;
+  }
+  .home-song-card {
+    overflow: hidden;
+    margin: 11px 0 13px;
+    border: 2px solid var(--tl-ink);
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--tl-soft-lav), var(--tl-soft-sage) 52%, var(--tl-soft-rose));
+    box-shadow: 4px 4px 0 rgba(48,42,56,.12);
+  }
+  .home-song-row {
+    display: grid;
+    grid-template-columns: 74px minmax(0,1fr) 46px;
+    align-items: center;
+    gap: 11px;
+    padding: 10px;
+  }
+  .home-song-thumb {
+    width: 74px;
+    height: 50px;
+    object-fit: cover;
+    border: 1.5px solid var(--tl-ink);
+    border-radius: 11px;
+    background: #d8d0db;
+  }
+  .home-song-meta { min-width: 0; }
+  .home-song-kicker {
+    display: block;
+    margin-bottom: 3px;
+    color: #8a7890;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .14em;
+  }
+  .home-song-title {
+    display: block;
+    overflow: hidden;
+    color: var(--tl-ink);
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.35;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .home-song-artist {
+    display: block;
+    overflow: hidden;
+    margin-top: 3px;
+    color: var(--tl-muted);
+    font-size: 10px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .home-song-play {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border: 2px solid var(--tl-ink) !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, var(--tl-rose), var(--tl-lav)) !important;
+    color: #fff !important;
+    box-shadow: 3px 3px 0 rgba(48,42,56,.18) !important;
+    font-size: 17px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+  }
+  .home-song-play.is-playing {
+    background: linear-gradient(135deg, var(--tl-sage), #aebdca) !important;
+  }
+  .home-song-player {
+    display: none;
+    border-top: 2px solid var(--tl-ink);
+    background: #252128;
+  }
+  .home-song-player.is-open { display: block; }
+  .home-song-player-ratio {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #111;
+  }
+  .home-song-player-ratio iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .home-song-player-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 11px;
+    color: #f5eef5;
+    font-size: 10px;
+  }
+  .home-song-player-bottom a {
+    color: #f5eef5 !important;
+    text-decoration: underline !important;
+    text-underline-offset: 3px;
+  }
+  </style>
 </head>
 <body class="selection:bg-slate-900 selection:text-white">
 
@@ -186,7 +340,7 @@
         <div id="authStatusContainer"></div>
 
         <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm ml-1">
-          <span>+</span>
+          <span>+ ADD</span>
         </button>
       </div>
     </header>
@@ -205,10 +359,16 @@
       <div id="followingStoriesList" class="flex items-center gap-3.5"></div>
     </div>
 
-    <!-- フィード切り替えタブ -->
-    <div class="px-4 pt-3 flex items-center gap-4 text-xs font-bold tracking-wider border-b border-slate-200 bg-white">
-      <button id="tabAll" onclick="switchFeedTab('all')" class="pb-2 text-slate-900 border-b-2 border-slate-900">ALL</button>
-      <button id="tabFollowing" onclick="switchFeedTab('following')" class="pb-2 text-slate-400 hover:text-slate-700">FOLLOWING</button>
+    <!-- フィード切り替えタブ & 日付フィルター -->
+    <div class="px-4 pt-3 flex items-center justify-between border-b border-slate-200 bg-white">
+      <div class="flex items-center gap-4 text-xs font-bold tracking-wider">
+        <button id="tabAll" onclick="switchFeedTab('all')" class="pb-2 text-slate-900 border-b-2 border-slate-900">ALL</button>
+        <button id="tabFollowing" onclick="switchFeedTab('following')" class="pb-2 text-slate-400 hover:text-slate-700">FOLLOWING</button>
+      </div>
+      <div class="flex items-center gap-1 pb-2">
+        <input type="date" id="dateFilter" class="navy-input rounded-lg px-2 py-0.5 text-[10px]">
+        <button id="clearDate" class="text-[10px] font-bold text-slate-400 hover:text-slate-800">RESET</button>
+      </div>
     </div>
 
     <!-- メインフィード -->
@@ -306,7 +466,7 @@
       </div>
     </div>
 
-    <!-- 3. プロフィールモーダル（インスタ風グリッド対応） -->
+    <!-- プロフィールモーダル（インスタ風グリッド対応） -->
     <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-900 shrink-0">
@@ -525,6 +685,8 @@
     const feedEl = document.getElementById('feed');
     const formEl = document.getElementById('postForm');
     const postModal = document.getElementById('postModal');
+    const dateFilterEl = document.getElementById('dateFilter');
+    const clearDateEl = document.getElementById('clearDate');
 
     function getToken() { return localStorage.getItem('access_token'); }
     function setToken(t) { localStorage.setItem('access_token', t); }
@@ -585,7 +747,6 @@
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          // 現在チャットモーダルを開いている相手からのメッセージであれば直接追加
           if (activeDmPartner && msg.sender_username.toLowerCase() === activeDmPartner.toLowerCase()) {
             appendDmMessage(msg);
           }
@@ -595,7 +756,6 @@
       };
 
       ws.onclose = () => {
-        // 切断された場合5秒後に再接続
         setTimeout(() => {
           if (currentUser) initWebSocket();
         }, 1000);
@@ -636,7 +796,7 @@
       updateViewState(false);
     };
 
-    // --- ストーリートレイ (友達の丸アイコンをクリックするとプロフィールへ遷移) ---
+    // --- ストーリートレイ ---
     async function loadStories() {
       const token = getToken();
       if (!token) return;
@@ -942,7 +1102,7 @@
       }
     });
 
-    // --- フィード制御 ---
+    // --- フィード制御 & 音楽解析・再生処理 ---
     window.switchFeedTab = function(tab) {
       currentFeedTab = tab;
       currentFilterUser = null;
@@ -959,12 +1119,169 @@
       loadSpots();
     };
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function parseSpotMusic(memoValue) {
+      const raw = String(memoValue || '');
+      const lines = raw.split(/\r?\n/);
+      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?[^\s]*?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/i;
+
+      const musicLineIndex = lines.findIndex(line => line.trim().startsWith('🎵'));
+      const urlLineIndex = lines.findIndex(line => youtubeRegex.test(line.trim()));
+
+      if (musicLineIndex < 0 && urlLineIndex < 0) {
+        return { memo: raw.trim(), music: null };
+      }
+
+      const urlLine = urlLineIndex >= 0 ? lines[urlLineIndex].trim() : '';
+      const urlMatch = urlLine.match(youtubeRegex);
+
+      if (!urlMatch) {
+        return { memo: raw.trim(), music: null };
+      }
+
+      const videoId = urlMatch[1];
+      const externalUrl = urlLine.startsWith('http')
+        ? urlLine
+        : `https://www.youtube.com/watch?v=${videoId}`;
+
+      let musicLine = musicLineIndex >= 0
+        ? lines[musicLineIndex].trim().replace(/^🎵\s*/, '')
+        : 'YouTube';
+
+      let title = musicLine || 'この投稿の1曲';
+      let artist = 'YouTube';
+
+      const separatorIndex = title.lastIndexOf(' — ');
+      if (separatorIndex > 0) {
+        artist = title.slice(separatorIndex + 3).trim() || 'YouTube';
+        title = title.slice(0, separatorIndex).trim() || 'この投稿の1曲';
+      }
+
+      const cleanMemo = lines
+        .filter((_, index) => index !== musicLineIndex && index !== urlLineIndex)
+        .join('\n')
+        .trim();
+
+      return {
+        memo: cleanMemo,
+        music: { videoId, externalUrl, title, artist }
+      };
+    }
+
+    function renderHomeSongCard(music) {
+      if (!music) return '';
+
+      const videoId = escapeHtml(music.videoId);
+      const title = escapeHtml(music.title);
+      const artist = escapeHtml(music.artist);
+      const externalUrl = escapeHtml(music.externalUrl);
+      const thumb = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+
+      return `
+        <div class="home-song-card">
+          <div class="home-song-row">
+            <img class="home-song-thumb" src="${thumb}" alt="">
+            <div class="home-song-meta">
+              <span class="home-song-kicker">TODAY'S SONG</span>
+              <strong class="home-song-title">${title}</strong>
+              <span class="home-song-artist">${artist}</span>
+            </div>
+            <button
+              type="button"
+              class="home-song-play"
+              data-video-id="${videoId}"
+              aria-label="この投稿の音楽を再生"
+            >▶</button>
+          </div>
+          <div class="home-song-player">
+            <div class="home-song-player-ratio">
+              <iframe
+                title="YouTube player"
+                src=""
+                allow="autoplay; encrypted-media; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <div class="home-song-player-bottom">
+              <span>この投稿の音楽</span>
+              <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">YouTubeで開く ↗</a>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function closeAllHomeSongPlayers(exceptCard = null) {
+      feedEl.querySelectorAll('.home-song-card').forEach(card => {
+        if (card === exceptCard) return;
+
+        const player = card.querySelector('.home-song-player');
+        const iframe = card.querySelector('iframe');
+        const button = card.querySelector('.home-song-play');
+
+        player?.classList.remove('is-open');
+        if (iframe) iframe.src = '';
+
+        if (button) {
+          button.classList.remove('is-playing');
+          button.textContent = '▶';
+          button.setAttribute('aria-label', 'この投稿の音楽を再生');
+        }
+      });
+    }
+
+    function wireHomeSongPlayers() {
+      feedEl.querySelectorAll('.home-song-play').forEach(button => {
+        button.addEventListener('click', () => {
+          const card = button.closest('.home-song-card');
+          if (!card) return;
+
+          const player = card.querySelector('.home-song-player');
+          const iframe = card.querySelector('iframe');
+          const videoId = button.dataset.videoId;
+          const opening = !player.classList.contains('is-open');
+
+          if (!opening) {
+            player.classList.remove('is-open');
+            iframe.src = '';
+            button.classList.remove('is-playing');
+            button.textContent = '▶';
+            button.setAttribute('aria-label', 'この投稿の音楽を再生');
+            return;
+          }
+
+          closeAllHomeSongPlayers(card);
+
+          iframe.src =
+            `https://www.youtube.com/embed/${encodeURIComponent(videoId)}` +
+            '?autoplay=1&playsinline=1&rel=0';
+
+          player.classList.add('is-open');
+          button.classList.add('is-playing');
+          button.textContent = '■';
+          button.setAttribute('aria-label', '音楽を停止');
+        });
+      });
+    }
+
     async function loadSpots() {
       feedEl.innerHTML = '<p class="text-center text-xs text-slate-400 py-12 tracking-widest uppercase font-medium">Loading...</p>';
       const token = getToken();
       let url = `/spots?feed_type=${currentFeedTab}`;
       if (currentFilterUser) {
         url += `&target_username=${encodeURIComponent(currentFilterUser)}`;
+      }
+      if (dateFilterEl && dateFilterEl.value) {
+        url += `&target_date=${dateFilterEl.value}`;
       }
 
       try {
@@ -993,9 +1310,11 @@
           const dateText = `${visitDate.getFullYear()}.${String(visitDate.getMonth() + 1).padStart(2, '0')}.${String(visitDate.getDate()).padStart(2, '0')}`;
           const timeText = visitDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
           const avatarBg = s.author_avatar_url ? `style="background-image: url('${s.author_avatar_url}')"` : '';
+          const parsedMemo = parseSpotMusic(s.memo);
+          const musicCard = renderHomeSongCard(parsedMemo.music);
 
           return `
-            <article class="navy-card rounded-2xl overflow-hidden">
+            <article class="navy-card tl-post-card rounded-2xl overflow-hidden">
               <div class="px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-white">
                 <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${encodeURIComponent(s.username)}')">
                   <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
@@ -1038,11 +1357,14 @@
                   </button>
                   <span class="text-[10px] text-slate-400 font-mono">${dateText} ${timeText}</span>
                 </div>
-                ${s.memo ? `<p class="text-xs text-slate-600 leading-relaxed">${s.memo}</p>` : ''}
+                ${musicCard}
+                ${parsedMemo.memo ? `<p class="text-xs text-slate-600 leading-relaxed">${escapeHtml(parsedMemo.memo).replace(/\n/g, '<br>')}</p>` : ''}
               </div>
             </article>
           `;
         }).join('');
+
+        wireHomeSongPlayers();
       } catch (err) {
         feedEl.innerHTML = `
           <div class="text-center py-16 border border-dashed border-rose-300 rounded-2xl bg-white/50">
@@ -1073,7 +1395,7 @@
       }
     };
 
-    // --- プロフィール表示（インスタ風グリッド読み込み機能付き） ---
+    // --- プロフィール表示（インスタ風グリッド） ---
     window.openProfile = async function(rawUsername) {
       const username = decodeURIComponent(rawUsername);
       const token = getToken();
@@ -1144,14 +1466,12 @@
         document.getElementById('profileDropdown').classList.add('hidden');
         document.getElementById('profileModal').classList.remove('hidden');
 
-        // そのユーザーの投稿（インスタ風グリッド）を取得してレンダリング
         loadProfileSpotsGrid(user.username);
       } catch (err) {
         alert('プロフィール取得時にエラーが発生しました');
       }
     };
 
-    // インスタ風グリッドのレンダリング
     async function loadProfileSpotsGrid(username) {
       const gridEl = document.getElementById('profileGrid');
       gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs font-mono">Loading posts...</p>';
@@ -1194,14 +1514,12 @@
           `;
         }).join('');
 
-        // グローバルにスポットデータをキャッシュ（詳細表示用）
         window.cachedProfileSpots = spots;
       } catch(e) {
         gridEl.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-6 text-xs">エラーが発生しました</p>';
       }
     }
 
-    // グリッド写真クリック時の詳細ポップアップ
     window.openSpotDetailModal = function(spotId) {
       if (!window.cachedProfileSpots) return;
       const spot = window.cachedProfileSpots.find(s => s.id === spotId);
@@ -1220,7 +1538,7 @@
         ) : ''}
         <div class="text-xs space-y-1.5">
           <p class="text-slate-400 font-mono text-[10px]">${dateText}</p>
-          ${spot.memo ? `<p class="text-slate-700 leading-relaxed">${spot.memo}</p>` : ''}
+          ${spot.memo ? `<p class="text-slate-700 leading-relaxed">${escapeHtml(spot.memo)}</p>` : ''}
           <div class="pt-2 flex justify-end">
             <a href="${spot.google_map_url}" target="_blank" rel="noopener noreferrer" class="navy-btn-outline text-[10px] font-bold px-3 py-1 rounded-full">
               Google Maps ↗
@@ -1471,11 +1789,9 @@
       document.getElementById('visitedAtInput').value = now.toISOString().slice(0, 16);
     }
 
+    // 「+ ADD」ボタンで専用の「写真 + 音楽」作成ページ static/add.html へ移動
     document.getElementById('openModalBtn').addEventListener('click', () => {
-      postModal.classList.remove('hidden');
-      setInitialVisitedAt();
-      if (!map) initMap();
-      setTimeout(() => { if (map) map.invalidateSize(); }, 150);
+      window.location.assign('/static/add.html');
     });
 
     function closePostModal() {
@@ -1572,6 +1888,16 @@
         alert('アップロード処理中にエラーが発生しました');
       }
     });
+
+    if (dateFilterEl) {
+      dateFilterEl.addEventListener('change', () => loadSpots());
+    }
+    if (clearDateEl) {
+      clearDateEl.addEventListener('click', () => {
+        dateFilterEl.value = '';
+        loadSpots();
+      });
+    }
 
     checkAuth();
   </script>
