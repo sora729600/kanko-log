@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TRAVEL LOG</title>
+  <title>WithLog</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -16,8 +16,8 @@
   <style>
     body {
       font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
-      /* 改良点④: 投稿画面と同系統の上質なニュアンスカラー2Dグラデーション背景 */
-      background: linear-gradient(135deg, #f8f3f6 0%, #f0eaf3 35%, #eaf0ea 70%, #f7f2ed 100%);
+      /* 改善点①: グラデーションの発色を鮮やかに強化 */
+      background: linear-gradient(135deg, #f3dbe8 0%, #e3d2f2 35%, #d1e8d4 70%, #f7e6d7 100%);
       background-attachment: fixed;
       color: #302a38;
       min-height: 100vh;
@@ -70,15 +70,13 @@
       scrollbar-width: none;
     }
 
-    /* ヘッダーの重なり順を暗い背景(z-50)より下に強制固定 */
-#appView > header {
-  z-index: 10 !important;
-}
-
-/* すべてのモーダルオーバーレイをヘッダー(z-10)より上の最前面(z-50)に強制適用 */
-.modal-overlay {
-  z-index: 50 !important;
-}
+    /* ヘッダーとモーダルの重なり順（z-index）の確実な制御 */
+    #appView > header {
+      z-index: 10 !important;
+    }
+    .modal-overlay {
+      z-index: 50 !important;
+    }
   </style>
 
   <!-- 2Dニュアンスカラー ＆ 楽曲プレイヤー スタイル -->
@@ -90,17 +88,15 @@
     --tl-lav: #b8a8c8;
     --tl-sage: #adbea9;
     --tl-rose: #cba8b1;
-    --tl-soft-lav: #eee5f0;
-    --tl-soft-sage: #e2ebe0;
-    --tl-soft-rose: #f0e0e4;
+    --tl-soft-lav: #ede2f2;
+    --tl-soft-sage: #dbe8da;
+    --tl-soft-rose: #f2dadf;
   }
   #appView > header {
     background: rgba(255, 250, 247, 0.92) !important;
     border-bottom: 2px solid var(--tl-ink) !important;
     box-shadow: 0 4px 0 rgba(48,42,56,.10) !important;
-    z-index: 20 !important;
   }
-
   #openModalBtn {
     border: 2px solid var(--tl-ink) !important;
     background: linear-gradient(135deg, var(--tl-lav), var(--tl-sage) 52%, var(--tl-rose)) !important;
@@ -239,23 +235,24 @@
   <div id="landingView" class="hidden min-h-screen flex flex-col justify-between max-w-md mx-auto p-6">
     <div class="pt-8">
       <div class="inline-block px-3 py-1 bg-slate-900 text-white text-[9px] font-bold tracking-[0.25em] uppercase rounded-full mb-4">
-        Official Travel Journal
+        Official Life Journal
       </div>
+      <!-- 改善点②: ブランド名とコンセプトを WithLog へ進化 -->
       <h1 class="text-3xl font-extrabold tracking-[0.18em] text-slate-900 leading-tight uppercase">
-        Travel<br>Log.
+        With<br>Log.
       </h1>
       <p class="text-xs text-slate-600 mt-2 font-medium tracking-wider">
-        地図と写真と音楽で記録する、あなただけの旅路のアーカイブ
+        日常の瞬間を、地図と写真と音楽で残すライフスタイルログ
       </p>
     </div>
 
     <div class="my-8 navy-card rounded-2xl p-5 bg-white/90 backdrop-blur-sm relative overflow-hidden">
-      <div class="text-[10px] font-mono text-slate-400 tracking-widest uppercase mb-1">Passport / Archive #01</div>
-      <div class="text-sm font-bold text-slate-900 mb-3">旅の記憶を鮮明に、シンプルに美しく。</div>
+      <div class="text-[10px] font-mono text-slate-400 tracking-widest uppercase mb-1">Archive #01</div>
+      <div class="text-sm font-bold text-slate-900 mb-3">日々の記憶を鮮明に、シンプルに美しく。</div>
       <div class="space-y-2 text-xs text-slate-600">
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>OpenStreetMap & Google Maps 連携</span>
+          <span>スポット・写真・音楽を記録</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
@@ -263,26 +260,26 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-          <span>最新の旅路が並ぶストーリートレイ</span>
+          <span>大切な日常が並ぶストーリートレイ</span>
         </div>
       </div>
     </div>
 
     <div class="bg-white/95 backdrop-blur border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
       <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-4">
-        <h2 id="gateTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">SIGN IN TO YOUR LOG</h2>
+        <h2 id="gateTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">SIGN IN TO WITHLOG</h2>
         <span class="text-[10px] font-mono text-slate-400">AUTHENTICATION</span>
       </div>
 
       <form id="gateAuthForm" class="space-y-3">
         <div>
           <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">User ID (@username)</label>
-          <input type="text" id="gateUsername" required class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="traveler123">
+          <input type="text" id="gateUsername" required class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="user123">
         </div>
 
         <div id="gateDisplayNameContainer" class="hidden">
           <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Display Name (表示名)</label>
-          <input type="text" id="gateDisplayName" class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="旅するそら">
+          <input type="text" id="gateDisplayName" class="w-full rounded-xl p-2.5 text-xs navy-input" placeholder="ソラ">
         </div>
 
         <div id="gateEmailContainer" class="hidden">
@@ -296,7 +293,7 @@
         </div>
 
         <button type="submit" id="gateSubmitBtn" class="w-full navy-btn font-bold py-3 rounded-xl text-xs tracking-[0.18em] uppercase shadow-sm mt-1 transition">
-          Enter Travel Log
+          Enter WithLog
         </button>
       </form>
 
@@ -308,7 +305,7 @@
     </div>
 
     <div class="py-6 text-center text-[10px] tracking-widest text-slate-400 font-mono">
-      &copy; 2026 TRAVEL LOG ARCHIVE
+      &copy; 2026 WITHLOG ARCHIVE
     </div>
   </div>
 
@@ -321,7 +318,7 @@
     <!-- トップヘッダー -->
     <header class="sticky top-0 z-10 bg-white/90 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
       <div>
-        <h1 class="text-base font-bold tracking-[0.2em] text-slate-900 uppercase cursor-pointer" onclick="switchFeedTab('all')">Travel Log</h1>
+        <h1 class="text-base font-bold tracking-[0.2em] text-slate-900 uppercase cursor-pointer" onclick="switchFeedTab('all')">WithLog</h1>
         <p class="text-[9px] tracking-[0.25em] text-slate-500 uppercase font-medium">Archive of Moments</p>
       </div>
 
@@ -348,7 +345,7 @@
         <div id="authStatusContainer"></div>
 
         <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm ml-1">
-          <span>+</span>
+          <span>+ ADD</span>
         </button>
       </div>
     </header>
@@ -387,7 +384,7 @@
     </main>
 
     <!-- 通知モーダル -->
-    <div id="notificationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="notificationsModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Notifications</h2>
@@ -398,7 +395,7 @@
     </div>
 
     <!-- ユーザー検索モーダル -->
-    <div id="userSearchModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="userSearchModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Search Users</h2>
@@ -417,13 +414,13 @@
       </div>
     </div>
 
-    <!-- 投稿モーダル (Leafletマップ・位置検索付き) -->
-    <div id="postModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <!-- 投稿モーダル -->
+    <div id="postModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-5">
           <div>
             <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">New Log</h2>
-            <p class="text-[10px] text-slate-400 font-medium tracking-wider">思い出を記録する</p>
+            <p class="text-[10px] text-slate-400 font-medium tracking-wider">日常を記録する</p>
           </div>
           <button id="cancelModalBtn" class="text-slate-400 hover:text-slate-900 text-xs px-2 py-1 font-medium transition">✕ キャンセル</button>
         </div>
@@ -474,8 +471,8 @@
       </div>
     </div>
 
-    <!-- 改良点①: フォロー／フォロワーリスト表示モーダル -->
-    <div id="userListModal" class="modal-overlay fixed inset-0 z-60 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <!-- フォロー／フォロワーリスト表示モーダル -->
+    <div id="userListModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 id="userListModalTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">USERS</h2>
@@ -488,12 +485,12 @@
     </div>
 
     <!-- プロフィールモーダル -->
-    <div id="profileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="profileModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-900 shrink-0">
           <div class="flex items-center gap-2">
-            <span class="w-2 h-2 bg-slate-900"></span>
-            <span class="text-[10px] font-mono tracking-[0.2em] uppercase font-bold text-slate-900">Journalist Profile</span>
+            <span class="w-2 h-2 bg-slate-900 rounded-full"></span>
+            <span class="text-[10px] font-mono tracking-[0.2em] uppercase font-bold text-slate-900">WithLog Profile</span>
             <span id="profilePrivateBadge" class="hidden text-[9px] bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 font-mono">🔒 PRIVATE</span>
           </div>
 
@@ -523,12 +520,13 @@
         <div class="overflow-y-auto space-y-4 pr-1">
           <div id="profileCover" class="w-full h-24 border border-slate-900 rounded-xl bg-slate-100 bg-cover bg-center relative shadow-sm shrink-0">
             <div class="absolute bottom-2 left-2 passport-badge bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[9px] font-bold text-slate-800">
-              PASSPORT ARCHIVE
+              WITHLOG ARCHIVE
             </div>
           </div>
 
           <div class="flex items-start gap-3.5">
-            <div id="profileAvatar" class="w-14 h-14 rounded-xl border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
+            <!-- 改善点③: 四角から綺麗な完全丸型アイコンに変更 (rounded-full) -->
+            <div id="profileAvatar" class="w-14 h-14 rounded-full border-2 border-slate-900 bg-slate-100 bg-cover bg-center shrink-0 flex items-center justify-center font-bold text-lg text-slate-800 shadow-[2px_2px_0px_#0f172a]"></div>
             
             <div class="flex-1 min-w-0">
               <h2 id="profileDisplayName" class="text-base font-extrabold text-slate-900 leading-tight truncate"></h2>
@@ -541,7 +539,6 @@
             <p id="profileBio" class="text-xs text-slate-700 leading-relaxed font-normal"></p>
           </div>
 
-          <!-- 改良点①: クリックでフォロー・フォロワー一覧が開く -->
           <div class="grid grid-cols-2 gap-2 font-mono">
             <div id="btnProfileFollowing" class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm cursor-pointer hover:border-slate-900 transition">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Following</span>
@@ -566,7 +563,7 @@
     </div>
 
     <!-- 投稿詳細ポップアップモーダル -->
-    <div id="spotDetailModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="spotDetailModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative overflow-hidden">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
           <h2 id="spotDetailTitle" class="text-xs font-bold text-slate-900 truncate"></h2>
@@ -577,7 +574,7 @@
     </div>
 
     <!-- 設定モーダル -->
-    <div id="settingsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="settingsModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Settings & Friends</h2>
@@ -602,7 +599,7 @@
     </div>
 
     <!-- 承認待ち一覧モーダル -->
-    <div id="incomingRequestsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="incomingRequestsModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">承認待ちの申請</h2>
@@ -615,7 +612,7 @@
     </div>
 
     <!-- 申請中アカウント一覧モーダル -->
-    <div id="outgoingRequestsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="outgoingRequestsModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">申請中のアカウント</h2>
@@ -628,7 +625,7 @@
     </div>
 
     <!-- プロフィール編集モーダル -->
-    <div id="editProfileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="editProfileModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">Edit Profile</h2>
@@ -659,7 +656,7 @@
     </div>
 
     <!-- DM 会話一覧モーダル -->
-    <div id="conversationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="conversationsModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Messages</h2>
@@ -672,7 +669,7 @@
     </div>
 
     <!-- DM チャットモーダル -->
-    <div id="dmModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="dmModal" class="modal-overlay fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
       <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl h-[520px] flex flex-col shadow-2xl overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-900 flex items-center justify-between bg-slate-50">
           <div class="flex items-center gap-2">
@@ -724,7 +721,7 @@
       }
     }
 
-    // 改良点②: 暗い背景(overlay)をクリックした時にモーダルを閉じる共通処理
+    // 暗い背景(overlay)をクリックした時にモーダルを閉じる共通処理
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('modal-overlay')) {
         e.target.classList.add('hidden');
@@ -760,7 +757,7 @@
       }
     }
 
-    // 改良点③: WebSocketによる完全リアルタイムDMの送受信
+    // WebSocketによる完全リアルタイムDMの送受信
     function initWebSocket() {
       const token = getToken();
       if (!token) return;
@@ -863,7 +860,7 @@
       }
     }
 
-// --- 通知 ---
+    // --- 通知 ---
     async function loadNotifications() {
       const token = getToken();
       if (!token) return;
@@ -896,6 +893,7 @@
 
               return `
                 <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center gap-3 ${!n.is_read ? 'bg-indigo-50/40' : ''}" onclick="openProfile('${encodeURIComponent(n.sender_username)}'); closeNotificationsModal();">
+                  <!-- 改善点③: アイコンを丸型に変更 (rounded-full) -->
                   <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-400 flex items-center justify-center font-bold text-xs" ${n.sender_avatar_url ? `style="background-image: url('${n.sender_avatar_url}')"` : ''}>
                     ${!n.sender_avatar_url ? n.sender_username.charAt(0).toUpperCase() : ''}
                   </div>
@@ -939,14 +937,14 @@
     gateToggleBtn.addEventListener('click', () => {
       isGateRegisterMode = !isGateRegisterMode;
       if (isGateRegisterMode) {
-        gateTitle.innerText = 'CREATE TRAVEL ARCHIVE';
+        gateTitle.innerText = 'CREATE WITHLOG ARCHIVE';
         gateSubmitBtn.innerText = 'Create Account';
         gateEmailContainer.classList.remove('hidden');
         gateDisplayNameContainer.classList.remove('hidden');
         gateToggleBtn.innerText = 'すでにアカウントをお持ちの方はこちら（ログイン）';
       } else {
-        gateTitle.innerText = 'SIGN IN TO YOUR LOG';
-        gateSubmitBtn.innerText = 'Enter Travel Log';
+        gateTitle.innerText = 'SIGN IN TO WITHLOG';
+        gateSubmitBtn.innerText = 'Enter WithLog';
         gateEmailContainer.classList.add('hidden');
         gateDisplayNameContainer.classList.add('hidden');
         gateToggleBtn.innerText = 'アカウントを新規作成する';
@@ -1020,7 +1018,8 @@
       listEl.innerHTML = users.map(u => `
         <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserSearchModal(); openProfile('${encodeURIComponent(u.username)}');">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+            <!-- 改善点③: アイコンを丸型に変更 (rounded-full) -->
+            <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
               ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
             </div>
             <div>
@@ -1040,11 +1039,11 @@
       }
     });
 
-// --- フォロー／フォロワーリストを表示する関数 ---
+    // フォロー／フォロワーリストを表示する関数
     window.openUserListModal = async function(type) {
       if (!currentProfileUser) return;
 
-      // ★ここを追加：リストを開く前にプロフィールモーダルを閉じる
+      // リストを開く前にプロフィールモーダルを閉じる
       closeProfileModal();
 
       const titleEl = document.getElementById('userListModalTitle');
@@ -1069,7 +1068,8 @@
         containerEl.innerHTML = users.map(u => `
           <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); openProfile('${encodeURIComponent(u.username)}');">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+              <!-- 改善点③: アイコンを丸型に変更 (rounded-full) -->
+              <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
                 ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
               </div>
               <div>
@@ -1104,7 +1104,8 @@
           listEl.innerHTML = users.map(u => `
             <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeConversationsModal(); openDmChat('${encodeURIComponent(u.username)}');">
               <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                <!-- 改善点③: アイコンを丸型に変更 (rounded-full) -->
+                <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
                   ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
                 </div>
                 <div>
@@ -1402,7 +1403,8 @@
             <article class="navy-card tl-post-card rounded-2xl overflow-hidden">
               <div class="px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-white">
                 <div class="flex items-center gap-2.5 cursor-pointer" onclick="openProfile('${encodeURIComponent(s.username)}')">
-                  <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
+                  <!-- 改善点③: アイコンを丸型に変更 (rounded-full) -->
+                  <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${avatarBg}>
                     ${!s.author_avatar_url ? (s.display_name || s.username).charAt(0).toUpperCase() : ''}
                   </div>
                   <div>
@@ -1477,7 +1479,7 @@
       }
     };
 
-    // --- プロフィール表示（インスタ風グリッド） ---
+    // --- プロフィール表示 ---
     window.openProfile = async function(rawUsername) {
       const username = decodeURIComponent(rawUsername);
       const token = getToken();
@@ -1552,7 +1554,6 @@
       }
     };
 
-    // 改良点①: プロフィール欄の FOLLOWING / FOLLOWERS タップ時イベント登録
     document.getElementById('btnProfileFollowing').addEventListener('click', () => openUserListModal('following'));
     document.getElementById('btnProfileFollowers').addEventListener('click', () => openUserListModal('followers'));
 
@@ -1723,7 +1724,8 @@
           listEl.innerHTML = users.map(u => `
             <div class="p-3 flex items-center justify-between">
               <div class="flex items-center gap-2 cursor-pointer" onclick="openProfile('${encodeURIComponent(u.username)}')">
-                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                <!-- 改善点③: アイコンを丸型に変更 (rounded-full) -->
+                <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
                   ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
                 </div>
                 <div>
@@ -1781,7 +1783,8 @@
           listEl.innerHTML = users.map(u => `
             <div class="p-3 flex items-center justify-between">
               <div class="flex items-center gap-2 cursor-pointer" onclick="openProfile('${encodeURIComponent(u.username)}')">
-                <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                <!-- 改善点③: アイコンを丸型に変更 (rounded-full) -->
+                <div class="w-8 h-8 rounded-full bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
                   ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
                 </div>
                 <div>
@@ -1961,7 +1964,6 @@
           loadStories();
           loadSpots();
         } else {
-          const errData = await res.json();
           alert(errData.detail || 'アップロードに失敗しました');
         }
       } catch (err) {
