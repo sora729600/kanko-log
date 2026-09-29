@@ -1028,9 +1028,13 @@
       }
     });
 
-// フォロー／フォロワーリストを表示する関数
+// --- フォロー／フォロワーリストを表示する関数 ---
     window.openUserListModal = async function(type) {
       if (!currentProfileUser) return;
+
+      // ★ここを追加：リストを開く前にプロフィールモーダルを閉じる
+      closeProfileModal();
+
       const titleEl = document.getElementById('userListModalTitle');
       const containerEl = document.getElementById('userListContainer');
       
@@ -1051,7 +1055,7 @@
         }
 
         containerEl.innerHTML = users.map(u => `
-          <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); closeProfileModal(); openProfile('${encodeURIComponent(u.username)}');">
+          <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); openProfile('${encodeURIComponent(u.username)}');">
             <div class="flex items-center gap-2.5">
               <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
                 ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
