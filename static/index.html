@@ -16,8 +16,10 @@
   <style>
     body {
       font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
-      background-color: #f8fafc;
-      color: #0f172a;
+      /* 改良点④: 投稿画面と同系統の上質なニュアンスカラー2Dグラデーション背景 */
+      background: linear-gradient(135deg, #f8f3f6 0%, #f0eaf3 35%, #eaf0ea 70%, #f7f2ed 100%);
+      background-attachment: fixed;
+      color: #302a38;
       min-height: 100vh;
     }
     .navy-card {
@@ -69,7 +71,7 @@
     }
   </style>
 
-  <!-- もう一人のデベロッパーのデザイン＆楽曲プレイヤー追加スタイル -->
+  <!-- 2Dニュアンスカラー ＆ 楽曲プレイヤー スタイル -->
   <style id="travel-log-final-2d-music-style">
   :root {
     --tl-ink: #302a38;
@@ -83,7 +85,7 @@
     --tl-soft-rose: #f0e0e4;
   }
   #appView > header {
-    background: #fffaf7 !important;
+    background: rgba(255, 250, 247, 0.92) !important;
     border-bottom: 2px solid var(--tl-ink) !important;
     box-shadow: 0 4px 0 rgba(48,42,56,.10) !important;
   }
@@ -92,12 +94,6 @@
     background: linear-gradient(135deg, var(--tl-lav), var(--tl-sage) 52%, var(--tl-rose)) !important;
     color: #fff !important;
     box-shadow: 3px 3px 0 rgba(48,42,56,.20) !important;
-  }
-  .tl-filter-card {
-    border: 2px solid rgba(48,42,56,.82) !important;
-    border-radius: 19px !important;
-    background: linear-gradient(90deg, rgba(238,229,240,.95), #fffaf7 48%, rgba(226,235,224,.96)) !important;
-    box-shadow: 4px 4px 0 rgba(48,42,56,.10) !important;
   }
   .tl-post-card {
     position: relative;
@@ -226,7 +222,7 @@
 <body class="selection:bg-slate-900 selection:text-white">
 
   <!-- ============================================== -->
-  <!-- 1. 未ログイン／ログアウト専用画面（WELCOME GATE） -->
+  <!-- 1. 未ログイン／ログアウト専用画面 (WELCOME GATE) -->
   <!-- ============================================== -->
   <div id="landingView" class="hidden min-h-screen flex flex-col justify-between max-w-md mx-auto p-6">
     <div class="pt-8">
@@ -236,12 +232,12 @@
       <h1 class="text-3xl font-extrabold tracking-[0.18em] text-slate-900 leading-tight uppercase">
         Travel<br>Log.
       </h1>
-      <p class="text-xs text-slate-500 mt-2 font-medium tracking-wider">
-        地図と写真で記録する、あなただけの旅路のアーカイブ
+      <p class="text-xs text-slate-600 mt-2 font-medium tracking-wider">
+        地図と写真と音楽で記録する、あなただけの旅路のアーカイブ
       </p>
     </div>
 
-    <div class="my-8 navy-card rounded-2xl p-5 bg-white relative overflow-hidden">
+    <div class="my-8 navy-card rounded-2xl p-5 bg-white/90 backdrop-blur-sm relative overflow-hidden">
       <div class="text-[10px] font-mono text-slate-400 tracking-widest uppercase mb-1">Passport / Archive #01</div>
       <div class="text-sm font-bold text-slate-900 mb-3">旅の記憶を鮮明に、シンプルに美しく。</div>
       <div class="space-y-2 text-xs text-slate-600">
@@ -260,7 +256,7 @@
       </div>
     </div>
 
-    <div class="bg-white border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
+    <div class="bg-white/95 backdrop-blur border-2 border-slate-900 rounded-2xl p-5 shadow-[4px_4px_0px_#0f172a]">
       <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-4">
         <h2 id="gateTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">SIGN IN TO YOUR LOG</h2>
         <span class="text-[10px] font-mono text-slate-400">AUTHENTICATION</span>
@@ -306,12 +302,12 @@
 
 
   <!-- ============================================== -->
-  <!-- 2. ログイン後メインビュー（APP MAIN VIEW）     -->
+  <!-- 2. ログイン後メインビュー (APP MAIN VIEW)       -->
   <!-- ============================================== -->
   <div id="appView" class="hidden max-w-md mx-auto min-h-screen flex flex-col justify-between pb-12">
 
     <!-- トップヘッダー -->
-    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-slate-900">
       <div>
         <h1 class="text-base font-bold tracking-[0.2em] text-slate-900 uppercase cursor-pointer" onclick="switchFeedTab('all')">Travel Log</h1>
         <p class="text-[9px] tracking-[0.25em] text-slate-500 uppercase font-medium">Archive of Moments</p>
@@ -340,13 +336,13 @@
         <div id="authStatusContainer"></div>
 
         <button id="openModalBtn" class="navy-btn text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm ml-1">
-          <span>+ ADD</span>
+          <span>+</span>
         </button>
       </div>
     </header>
 
     <!-- インスタ風ストーリートレイ -->
-    <div id="storiesContainer" class="bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto no-scrollbar flex items-center gap-3.5">
+    <div id="storiesContainer" class="bg-white/80 backdrop-blur border-b border-slate-200 px-4 py-3 overflow-x-auto no-scrollbar flex items-center gap-3.5">
       <div id="myStoryAvatar" class="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onclick="openProfile(currentUser.username)">
         <div class="w-13 h-13 rounded-full border-2 border-slate-900 p-0.5 relative">
           <div id="myStoryImg" class="w-12 h-12 rounded-full bg-slate-100 bg-cover bg-center flex items-center justify-center font-bold text-xs">
@@ -360,7 +356,7 @@
     </div>
 
     <!-- フィード切り替えタブ & 日付フィルター -->
-    <div class="px-4 pt-3 flex items-center justify-between border-b border-slate-200 bg-white">
+    <div class="px-4 pt-3 flex items-center justify-between border-b border-slate-200 bg-white/70 backdrop-blur">
       <div class="flex items-center gap-4 text-xs font-bold tracking-wider">
         <button id="tabAll" onclick="switchFeedTab('all')" class="pb-2 text-slate-900 border-b-2 border-slate-900">ALL</button>
         <button id="tabFollowing" onclick="switchFeedTab('following')" class="pb-2 text-slate-400 hover:text-slate-700">FOLLOWING</button>
@@ -379,8 +375,8 @@
     </main>
 
     <!-- 通知モーダル -->
-    <div id="notificationsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+    <div id="notificationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Notifications</h2>
           <button onclick="closeNotificationsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
@@ -390,8 +386,8 @@
     </div>
 
     <!-- ユーザー検索モーダル -->
-    <div id="userSearchModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+    <div id="userSearchModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Search Users</h2>
           <button onclick="closeUserSearchModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
@@ -409,9 +405,9 @@
       </div>
     </div>
 
-    <!-- 投稿モーダル -->
-    <div id="postModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
+    <!-- 投稿モーダル (Leafletマップ・位置検索付き) -->
+    <div id="postModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-5">
           <div>
             <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">New Log</h2>
@@ -466,9 +462,22 @@
       </div>
     </div>
 
-    <!-- プロフィールモーダル（インスタ風グリッド対応） -->
-    <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden max-h-[90vh] flex flex-col">
+    <!-- 改良点①: フォロー／フォロワーリスト表示モーダル -->
+    <div id="userListModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <h2 id="userListModalTitle" class="text-xs font-bold tracking-widest text-slate-900 uppercase">USERS</h2>
+          <button onclick="closeUserListModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
+        </div>
+        <div id="userListContainer" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
+          <p class="text-center text-slate-400 py-6">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- プロフィールモーダル -->
+    <div id="profileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-[6px_6px_0px_#0f172a] relative overflow-hidden max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-900 shrink-0">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 bg-slate-900"></span>
@@ -520,18 +529,18 @@
             <p id="profileBio" class="text-xs text-slate-700 leading-relaxed font-normal"></p>
           </div>
 
+          <!-- 改良点①: クリックでフォロー・フォロワー一覧が開く -->
           <div class="grid grid-cols-2 gap-2 font-mono">
-            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm">
+            <div id="btnProfileFollowing" class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm cursor-pointer hover:border-slate-900 transition">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Following</span>
               <span id="profileFollowingCount" class="text-sm font-black text-slate-900">0</span>
             </div>
-            <div class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm">
+            <div id="btnProfileFollowers" class="border border-slate-200 rounded-xl p-2 text-center bg-white shadow-sm cursor-pointer hover:border-slate-900 transition">
               <span class="text-[9px] text-slate-400 block tracking-widest uppercase">Followers</span>
               <span id="profileFollowersCount" class="text-sm font-black text-slate-900">0</span>
             </div>
           </div>
 
-          <!-- インスタ風グリッド領域 -->
           <div class="pt-2 border-t border-slate-200">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[10px] font-bold tracking-widest text-slate-500 uppercase font-mono">📷 POSTS</span>
@@ -545,8 +554,8 @@
     </div>
 
     <!-- 投稿詳細ポップアップモーダル -->
-    <div id="spotDetailModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative overflow-hidden">
+    <div id="spotDetailModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative overflow-hidden">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
           <h2 id="spotDetailTitle" class="text-xs font-bold text-slate-900 truncate"></h2>
           <button onclick="closeSpotDetailModal()" class="text-slate-400 hover:text-slate-900 text-xs font-bold">✕</button>
@@ -556,8 +565,8 @@
     </div>
 
     <!-- 設定モーダル -->
-    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+    <div id="settingsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Settings & Friends</h2>
           <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
@@ -581,8 +590,8 @@
     </div>
 
     <!-- 承認待ち一覧モーダル -->
-    <div id="incomingRequestsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+    <div id="incomingRequestsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">承認待ちの申請</h2>
           <button onclick="closeIncomingRequestsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
@@ -594,8 +603,8 @@
     </div>
 
     <!-- 申請中アカウント一覧モーダル -->
-    <div id="outgoingRequestsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+    <div id="outgoingRequestsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">申請中のアカウント</h2>
           <button onclick="closeOutgoingRequestsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
@@ -607,8 +616,8 @@
     </div>
 
     <!-- プロフィール編集モーダル -->
-    <div id="editProfileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+    <div id="editProfileModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-sm font-bold tracking-widest text-slate-900 uppercase">Edit Profile</h2>
           <button onclick="closeEditProfileModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
@@ -638,8 +647,8 @@
     </div>
 
     <!-- DM 会話一覧モーダル -->
-    <div id="conversationsModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+    <div id="conversationsModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
         <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
           <h2 class="text-xs font-bold tracking-widest text-slate-900 uppercase">Messages</h2>
           <button onclick="closeConversationsModal()" class="text-slate-400 hover:text-slate-900 text-xs font-medium">✕</button>
@@ -651,8 +660,8 @@
     </div>
 
     <!-- DM チャットモーダル -->
-    <div id="dmModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-      <div class="bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl h-[520px] flex flex-col shadow-2xl overflow-hidden">
+    <div id="dmModal" class="modal-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+      <div class="modal-card bg-white border-2 border-slate-900 w-full max-w-sm rounded-3xl h-[520px] flex flex-col shadow-2xl overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-900 flex items-center justify-between bg-slate-50">
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold text-slate-900" id="dmPartnerTitle">Chat</span>
@@ -676,6 +685,7 @@
     let currentFilterUser = null;
     let currentUser = null;
     let activeDmPartner = null;
+    let currentProfileUser = null;
     let ws = null;
     let map = null;
     let currentMarker = null;
@@ -701,6 +711,14 @@
         landingView.classList.remove('hidden');
       }
     }
+
+    // 改良点②: 暗い背景(overlay)をクリックした時にモーダルを閉じる共通処理
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.add('hidden');
+        if (e.target.id === 'dmModal') activeDmPartner = null;
+      }
+    });
 
     async function checkAuth() {
       const token = getToken();
@@ -730,7 +748,7 @@
       }
     }
 
-    // --- WebSocket 初期化 (DMリアルタイム配信用) ---
+    // 改良点③: WebSocketによる完全リアルタイムDMの送受信
     function initWebSocket() {
       const token = getToken();
       if (!token) return;
@@ -738,16 +756,16 @@
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws/dm?token=${encodeURIComponent(token)}`;
 
-      if (ws) {
-        ws.close();
-      }
-
+      if (ws) ws.close();
       ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (activeDmPartner && msg.sender_username.toLowerCase() === activeDmPartner.toLowerCase()) {
+          if (activeDmPartner && (
+            msg.sender_username.toLowerCase() === activeDmPartner.toLowerCase() ||
+            msg.sender_username.toLowerCase() === currentUser.username.toLowerCase()
+          )) {
             appendDmMessage(msg);
           }
         } catch(e) {
@@ -756,9 +774,7 @@
       };
 
       ws.onclose = () => {
-        setTimeout(() => {
-          if (currentUser) initWebSocket();
-        }, 1000);
+        setTimeout(() => { if (currentUser) initWebSocket(); }, 1500);
       };
     }
 
@@ -848,11 +864,8 @@
           const notifs = await res.json();
           const hasUnread = notifs.some(n => !n.is_read);
           const badge = document.getElementById('notifBadge');
-          if (hasUnread) {
-            badge.classList.remove('hidden');
-          } else {
-            badge.classList.add('hidden');
-          }
+          if (hasUnread) badge.classList.remove('hidden');
+          else badge.classList.add('hidden');
 
           const listEl = document.getElementById('notificationsList');
           if (notifs.length === 0) {
@@ -890,7 +903,7 @@
       document.getElementById('notificationsModal').classList.add('hidden');
     };
 
-    // --- 認証ログイン処理 ---
+    // --- Welcome Gate フォーム ---
     let isGateRegisterMode = false;
     const gateToggleBtn = document.getElementById('gateToggleBtn');
     const gateTitle = document.getElementById('gateTitle');
@@ -1003,7 +1016,52 @@
       }
     });
 
-    // --- DM会話 & リアルタイムメッセージ送信 ---
+    // 改良点①: フォロー／フォロワーリストを表示する関数
+    window.openUserListModal = async function(type) {
+      if (!currentProfileUser) return;
+      const titleEl = document.getElementById('userListModalTitle');
+      const containerEl = document.getElementById('userListContainer');
+      
+      titleEl.innerText = type === 'following' ? 'FOLLOWING' : 'FOLLOWERS';
+      containerEl.innerHTML = '<p class="text-center text-slate-400 py-6">読み込み中...</p>';
+      document.getElementById('userListModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/users/${encodeURIComponent(currentProfileUser.id)}/${type}`);
+        if (!res.ok) {
+          containerEl.innerHTML = '<p class="text-center text-slate-400 py-6">取得できませんでした</p>';
+          return;
+        }
+        const users = await res.json();
+        if (users.length === 0) {
+          containerEl.innerHTML = '<p class="text-center text-slate-400 py-6">ユーザーはいません</p>';
+          return;
+        }
+
+        containerEl.innerHTML = users.map(u => `
+          <div class="p-3 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer" onclick="closeUserListModal(); closeProfileModal(); openProfile('${encodeURIComponent(u.username)}');">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-slate-200 bg-cover bg-center border border-slate-400 flex items-center justify-center font-bold text-xs" ${u.avatar_url ? `style="background-image: url('${u.avatar_url}')"` : ''}>
+                ${!u.avatar_url ? (u.display_name || u.username).charAt(0).toUpperCase() : ''}
+              </div>
+              <div>
+                <p class="font-bold text-slate-900 leading-none">${u.display_name || u.username}</p>
+                <p class="text-[10px] text-slate-400 font-mono mt-0.5">@${u.username}</p>
+              </div>
+            </div>
+            <span class="text-[10px] text-slate-800 font-bold">VIEW ↗</span>
+          </div>
+        `).join('');
+      } catch(e) {
+        containerEl.innerHTML = '<p class="text-center text-slate-400 py-6">エラーが発生しました</p>';
+      }
+    };
+
+    window.closeUserListModal = function() {
+      document.getElementById('userListModal').classList.add('hidden');
+    };
+
+    // --- DM 会話 & チャット ---
     window.openConversationsModal = async function() {
       const token = getToken();
       const res = await fetch('/messages/conversations', {
@@ -1069,10 +1127,11 @@
     function appendDmMessage(m) {
       const list = document.getElementById('dmMessageList');
       const isMe = m.sender_username.toLowerCase() === currentUser.username.toLowerCase();
+      
       const msgDiv = document.createElement('div');
       msgDiv.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
       msgDiv.innerHTML = `
-        <div class="max-w-[75%] p-2 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
+        <div class="max-w-[75%] p-2.5 rounded-2xl ${isMe ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}">
           ${m.content}
         </div>
       `;
@@ -1096,9 +1155,7 @@
         body: JSON.stringify({ recipient_username: activeDmPartner, content })
       });
       if (res.ok) {
-        const data = await res.json();
         input.value = '';
-        appendDmMessage(data);
       }
     });
 
@@ -1387,11 +1444,8 @@
         const heart = btn.querySelector('.heart-icon');
         const countEl = btn.querySelector('.like-count');
         countEl.innerText = data.likes_count;
-        if (data.liked) {
-          heart.classList.add('text-rose-500', 'fill-current');
-        } else {
-          heart.classList.remove('text-rose-500', 'fill-current');
-        }
+        if (data.liked) heart.classList.add('text-rose-500', 'fill-current');
+        else heart.classList.remove('text-rose-500', 'fill-current');
       }
     };
 
@@ -1408,6 +1462,7 @@
           return;
         }
         const user = await res.json();
+        currentProfileUser = user;
 
         document.getElementById('profileDisplayName').innerText = user.display_name || user.username;
         document.getElementById('profileUsername').innerText = `@${user.username}`;
@@ -1416,11 +1471,8 @@
         document.getElementById('profileFollowersCount').innerText = user.followers_count;
 
         const badgePrivate = document.getElementById('profilePrivateBadge');
-        if (user.is_private) {
-          badgePrivate.classList.remove('hidden');
-        } else {
-          badgePrivate.classList.add('hidden');
-        }
+        if (user.is_private) badgePrivate.classList.remove('hidden');
+        else badgePrivate.classList.add('hidden');
 
         const avatarEl = document.getElementById('profileAvatar');
         if (user.avatar_url) {
@@ -1471,6 +1523,10 @@
         alert('プロフィール取得時にエラーが発生しました');
       }
     };
+
+    // 改良点①: プロフィール欄の FOLLOWING / FOLLOWERS タップ時イベント登録
+    document.getElementById('btnProfileFollowing').addEventListener('click', () => openUserListModal('following'));
+    document.getElementById('btnProfileFollowers').addEventListener('click', () => openUserListModal('followers'));
 
     async function loadProfileSpotsGrid(username) {
       const gridEl = document.getElementById('profileGrid');
@@ -1783,13 +1839,7 @@
       document.getElementById('selectedLng').value = lng;
     }
 
-    function setInitialVisitedAt() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      document.getElementById('visitedAtInput').value = now.toISOString().slice(0, 16);
-    }
-
-    // 「+ ADD」ボタンで専用の「写真 + 音楽」作成ページ static/add.html へ移動
+    // 「+ ADD」ボタンで投稿作成ページ static/add.html へ移動
     document.getElementById('openModalBtn').addEventListener('click', () => {
       window.location.assign('/static/add.html');
     });
@@ -1856,13 +1906,15 @@
       searchSuggestions.classList.add('hidden');
     };
 
-    searchLocationBtn.addEventListener('click', executePlaceSearch);
-    searchLocationInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        executePlaceSearch();
-      }
-    });
+    if (searchLocationBtn) searchLocationBtn.addEventListener('click', executePlaceSearch);
+    if (searchLocationInput) {
+      searchLocationInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          executePlaceSearch();
+        }
+      });
+    }
 
     formEl.addEventListener('submit', async (e) => {
       e.preventDefault();
